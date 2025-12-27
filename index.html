@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#070a0c" />
+  <title>ZOMBIE VIRUS EXPERIMENT</title>
+  <meta property="og:title" content="ZOMBIE VIRUS EXPERIMENT" />
+  <meta property="og:description" content="Эксперимент виртуального вируса: получи номер заражения, узнай кто тебя укусил, занеси себя в реестр и зарази дальше." />
+  <style>
+    :root{
+      --bg:#070a0c;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.03);
+      --stroke: rgba(255,255,255,.11);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --muted2: rgba(255,255,255,.45);
+      --g:#45ffb1;
+      --b:#78a9ff;
+      --o:#ffbe6b;
+      --r:#ff476b;
+      --radius: 26px;
+      --shadow: 0 22px 80px rgba(0,0,0,.62);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(900px 600px at 15% 10%, rgba(120,169,255,.16), transparent 55%),
+        radial-gradient(900px 600px at 85% 18%, rgba(69,255,177,.12), transparent 55%),
+        radial-gradient(1000px 700px at 50% 95%, rgba(255,190,107,.10), transparent 62%),
+        linear-gradient(180deg, #05070a 0%, #070a0c 40%, #05070a 100%);
+      overflow-x:hidden;
+    }
+    .noise::before{
+      content:"";
+      position:fixed; inset:0;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='190'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='190' height='190' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      opacity:.26;
+      mix-blend-mode:overlay;
+    }
+    .wrap{ max-width: 1180px; margin:0 auto; padding: 28px 18px 90px; }
+    header{
+      display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      margin: 8px 0 16px;
+    }
+    .brand{ display:flex; gap:14px; align-items:flex-start; min-width: 260px; }
+    .logo{
+      width: 52px; height: 52px; border-radius: 18px;
+      background:
+        radial-gradient(18px 18px at 30% 30%, rgba(255,255,255,.32), transparent 60%),
+        linear-gradient(135deg, rgba(69,255,177,.92), rgba(120,169,255,.90), rgba(255,190,107,.92));
+      border: 1px solid rgba(255,255,255,.20);
+      box-shadow: 0 0 46px rgba(120,169,255,.20), 0 0 70px rgba(69,255,177,.12);
+      position: relative; overflow:hidden;
+    }
+    .logo::after{
+      content:""; position:absolute; inset:-50%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.33), transparent);
+      transform: rotate(25deg);
+      animation: sweep 3.2s linear infinite;
+    }
+    @keyframes sweep{
+      0%{ transform: translateX(-55%) rotate(25deg); opacity:0;}
+      16%{ opacity:.9;}
+      50%{ opacity:0;}
+      100%{ transform: translateX(70%) rotate(25deg); opacity:0;}
+    }
+    h1{ margin:0; font-size: clamp(26px, 4.5vw, 46px); letter-spacing:-.03em; line-height:1.05; }
+    .sub{ margin:10px 0 0; color: var(--muted); max-width: 760px; line-height:1.45; }
+    .pills{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .pill{
+      display:flex; gap:10px; align-items:center;
+      padding: 10px 12px; border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+      color: var(--muted);
+      font-size: 13px;
+      user-select:none;
+    }
+    .dot{ width:8px; height:8px; border-radius:99px; background: var(--g); box-shadow: 0 0 18px rgba(69,255,177,.45); }
+    .pill b{ color: var(--text); font-weight:800; }
+
+    main{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ main{ grid-template-columns:1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(420px 240px at 20% 0%, rgba(69,255,177,.11), transparent 60%),
+        radial-gradient(420px 240px at 84% 0%, rgba(120,169,255,.12), transparent 60%),
+        radial-gradient(540px 300px at 50% 110%, rgba(255,190,107,.10), transparent 60%);
+      opacity:.9;
+    }
+    .inner{ position:relative; padding:18px; }
+
+    .row{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .row h2{ margin:0; font-size:16px; letter-spacing:.02em; font-weight:900; color: rgba(255,255,255,.86); }
+    .badge{
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.78);
+      display:flex; gap:8px; align-items:center;
+    }
+    .big{ font-size: clamp(18px, 2.1vw, 22px); letter-spacing:-.02em; line-height:1.25; margin: 0 0 12px; }
+    .muted{ color: var(--muted); }
+    .muted2{ color: var(--muted2); }
+
+    .ctrl{
+      display:flex; flex-direction:column; gap:8px;
+      padding: 12px; border-radius:18px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      margin-top: 10px;
+    }
+    label{ font-size:12px; color: var(--muted); }
+    input, textarea{
+      width:100%;
+      border-radius:14px;
+      padding:10px 12px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.92);
+      outline:none;
+      font-family: var(--sans);
+    }
+    textarea{ min-height: 90px; resize: vertical; }
+
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    button{
+      appearance:none; border:0; cursor:pointer;
+      border-radius:16px; padding:12px 14px;
+      font-weight:900; letter-spacing:-.01em;
+      color: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    button:hover{ transform: translateY(-1px); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.16); }
+    button:active{ transform: translateY(1px) scale(.99); }
+    .primary{
+      background: linear-gradient(135deg, rgba(69,255,177,.90), rgba(120,169,255,.84), rgba(255,190,107,.90));
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 0 46px rgba(120,169,255,.18), 0 0 70px rgba(69,255,177,.12), 0 18px 60px rgba(0,0,0,.45);
+      color: rgba(0,0,0,.82);
+    }
+    .ghost{ background: transparent; border: 1px dashed rgba(255,255,255,.22); box-shadow:none; }
+    .danger{ background: rgba(255,71,107,.14); border-color: rgba(255,71,107,.28); }
+
+    .divider{ height:1px; background: rgba(255,255,255,.10); margin: 14px 0; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    @media (max-width: 720px){ .grid{ grid-template-columns: repeat(6, 1fr);} }
+    @media (max-width: 440px){ .grid{ grid-template-columns: repeat(4, 1fr);} }
+
+    .cell{
+      border-radius: 14px;
+      padding: 10px 8px;
+      text-align:center;
+      font-family: var(--mono);
+      font-size: 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.82);
+      user-select:none;
+    }
+    .cell.me{ border-color: rgba(69,255,177,.55); box-shadow: 0 0 0 2px rgba(69,255,177,.10) inset; }
+    .cell.chain{ border-color: rgba(120,169,255,.55); box-shadow: 0 0 0 2px rgba(120,169,255,.10) inset; }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      padding: 12px 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.62);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.90);
+      font-size: 13px;
+      box-shadow: 0 18px 70px rgba(0,0,0,.45);
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 50;
+    }
+    .toast.show{ opacity:1; transform: translateX(-50%) translateY(-6px); }
+
+    .tag{
+      display:inline-flex;
+      gap:8px; align-items:center;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.80);
+    }
+    .tags{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+
+    .mini{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 560px){ .mini{ grid-template-columns:1fr; } }
+
+    .slot{
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      font-family: var(--mono);
+      color: rgba(255,255,255,.86);
+      min-height: 60px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .rare{ color: rgba(255,190,107,.95); }
+    .legend{ color: rgba(69,255,177,.95); }
+
+    .foot{ margin-top: 10px; font-size: 12px; color: rgba(255,255,255,.50); }
+  </style>
+</head>
+
+<body class="noise">
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>🧟 ZOMBIE VIRUS EXPERIMENT</h1>
+          <p class="sub">
+            Это **эксперимент виртуального вируса**: каждый заражённый получает **глобальный номер**.
+            Вирус распространяется **только добровольно** — потому что это мем-игра.
+          </p>
+        </div>
+      </div>
+
+      <div class="pills">
+        <div class="pill"><span class="dot"></span><span>режим: <b>GitHub Pages + Actions</b></span></div>
+        <div class="pill"><span>всего заражённых: <b id="totalTop">…</b></span></div>
+        <div class="pill"><span>статус: <b id="statusTop">инициализация</b></span></div>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT -->
+      <section class="card">
+        <div class="inner">
+          <div class="row">
+            <h2>📌 Твой статус заражения</h2>
+            <div class="badge">claim: <b id="claimCode">—</b></div>
+          </div>
+
+          <p class="big" id="myLine">Загрузка…</p>
+          <div class="tags">
+            <span class="tag">№: <b id="myId">—</b></span>
+            <span class="tag">штамм: <b id="myStrain">—</b></span>
+            <span class="tag">укусил: <b id="myFrom">—</b></span>
+            <span class="tag">ты укусил: <b id="myBites">0</b></span>
+          </div>
+
+          <div class="ctrl">
+            <label>Твой ник (будет в реестре)</label>
+            <input id="nick" type="text" maxlength="20" placeholder="например: isak / boss / necro" />
+          </div>
+
+          <div class="btns">
+            <button class="primary" id="btnClaim">ПОЛУЧИТЬ НОМЕР ЗАРАЖЕНИЯ</button>
+            <button id="btnBite">СОЗДАТЬ ССЫЛКУ УКУСА</button>
+            <button class="ghost" id="btnCopyBite">Копировать укус-ссылку</button>
+            <button class="danger" id="btnReset">Сбросить локально</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <h2>🧬 Цепочка заражения</h2>
+            <div class="badge">от кого пошло</div>
+          </div>
+
+          <div class="ctrl">
+            <label>Твоя линия (до “нулевого пациента”)</label>
+            <textarea id="lineage" readonly></textarea>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <h2>🎮 Мини-игра “Мутация”</h2>
+            <div class="badge">лови редкий штамм</div>
+          </div>
+
+          <p class="muted">
+            Нажимаешь — выпадает “мутант-карта”. У 1% шанс **легендарки**. Люди будут крутить и шарить скрин.
+          </p>
+
+          <div class="mini">
+            <div class="slot"><span>Мутация</span><b id="mut1">—</b></div>
+            <div class="slot"><span>Ранг</span><b id="mut2">—</b></div>
+          </div>
+
+          <div class="btns">
+            <button class="primary" id="btnMutate">МУТИРОВАТЬ</button>
+            <button class="ghost" id="btnCopyCard">Скопировать карточку</button>
+          </div>
+
+          <div class="foot">
+            Важно: сайт не собирает личные данные. В реестр попадает только ник/штамм/связь “укусил-кого”.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT -->
+      <aside class="card">
+        <div class="inner">
+          <div class="row">
+            <h2>🧾 Реестр заражённых</h2>
+            <div class="badge">последние / стена</div>
+          </div>
+
+          <p class="muted">
+            **Глобальные номера** — это и есть вирусность: люди хотят “получить номер”, “увидеть себя”, “поднять укусы” и “заразить друзей”.
+          </p>
+
+          <div class="ctrl">
+            <label>Поиск по номеру (#)</label>
+            <input id="searchId" type="text" placeholder="например: 17" />
+          </div>
+
+          <div class="btns">
+            <button id="btnFind">Найти</button>
+            <button class="ghost" id="btnRefresh">Обновить реестр</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <h2>🏆 Топ распространителей</h2>
+            <div class="badge">кто реально укусил</div>
+          </div>
+
+          <div class="ctrl">
+            <textarea id="leaderboard" readonly></textarea>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <h2>🧱 Стена номеров</h2>
+            <div class="badge"><span id="wallInfo">…</span></div>
+          </div>
+
+          <div class="grid" id="wall"></div>
+
+          <div class="foot">
+            ⚡ Для максимальной вирусности: кидай укус-ссылку в чат → заражённые сами хотят получить номер → реестр растёт.
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">ok</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const LS = "zombie_exp_v1";
+
+  const toast = (msg) => {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1500);
+  };
+
+  const rand = (arr) => arr[Math.floor(Math.random()*arr.length)];
+  const clamp = (n,a,b) => Math.max(a, Math.min(b, n));
+
+  const sanitizeNick = (s) => String(s||"").trim().slice(0,20).replace(/[^\p{L}\p{N}_\-. ]/gu, "");
+  const makeClaim = () => (crypto?.getRandomValues ? [...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,"0")).join("") : (Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2))).slice(0,16).toUpperCase();
+  const makeStrain = () => Math.random().toString(36).slice(2,6).toUpperCase() + Math.random().toString(36).slice(2,4).toUpperCase();
+
+  const MUTATIONS = [
+    "Кровавый Wi-Fi",
+    "Думскролл-паразит",
+    "Перфекционист-лич",
+    "Кофе-некромант",
+    "Ночной коммитер",
+    "Шортс-вампир",
+    "Дедлайн-пожиратель",
+    "ТГ-переходник",
+    "Мем-инфектор",
+    "NPC-срыватель масок"
+  ];
+  const RANKS = [
+    "обычный", "обычный", "обычный",
+    "редкий", "редкий",
+    "эпический",
+    "легендарный"
+  ];
+
+  // Состояние пользователя (локально)
+  const state = {
+    nick: "",
+    claim: null,
+    strain: null,
+    my_id: null,
+    from_id: null,
+    from_nick: null,
+    mutation: null,
+    rank: null
+  };
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(LS);
+      if(raw) Object.assign(state, JSON.parse(raw));
+    }catch(e){}
+  }
+  function saveState(){
+    localStorage.setItem(LS, JSON.stringify(state));
+  }
+
+  function guessRepo(){
+    const host = location.hostname;
+    const parts = location.pathname.split("/").filter(Boolean);
+    if(host.endsWith(".github.io") && parts.length >= 1){
+      const owner = host.split(".")[0];
+      const repo = parts[0];
+      return `${owner}/${repo}`;
+    }
+    return null;
+  }
+
+  function parseIncomingBite(){
+    const p = new URLSearchParams(location.search);
+    const fromId = p.get("from_id");
+    const fromNick = p.get("from");
+    if(fromId && !state.from_id){
+      const n = parseInt(fromId, 10);
+      if(Number.isFinite(n)) state.from_id = n;
+    }
+    if(fromNick && !state.from_nick){
+      state.from_nick = sanitizeNick(fromNick);
+    }
+  }
+
+  // Реестр (глобально из registry.json)
+  let registry = null;
+
+  async function fetchRegistry(){
+    try{
+      $("statusTop").textContent = "читаю реестр…";
+      const r = await fetch("./registry.json?cache=" + Date.now(), { cache: "no-store" });
+      if(!r.ok) throw new Error("registry fetch failed");
+      registry = await r.json();
+      if(!registry || !Array.isArray(registry.infections)) throw new Error("bad registry");
+      $("totalTop").textContent = String(registry.total || registry.infections.length || 0);
+      $("statusTop").textContent = "реестр загружен";
+      renderAll();
+    }catch(e){
+      $("statusTop").textContent = "реестр не доступен";
+      $("totalTop").textContent = "—";
+      toast("Не вижу registry.json (или кеш). Проверь, что он в репо и Pages его отдает.");
+    }
+  }
+
+  function findMeInRegistry(){
+    if(!registry || !registry.infections) return null;
+    if(state.claim){
+      const byClaim = registry.infections.find(x => x && x.claim === state.claim);
+      if(byClaim) return byClaim;
+    }
+    // запасной путь: по нику и штамму
+    if(state.nick && state.strain){
+      const byNick = registry.infections.find(x => x && x.nick === state.nick && x.strain === state.strain);
+      if(byNick) return byNick;
+    }
+    return null;
+  }
+
+  function buildLineage(me){
+    if(!registry || !me) return "—";
+    const map = new Map(registry.infections.map(x => [x.id, x]));
+    const chain = [];
+    let cur = me;
+    let guard = 0;
+
+    while(cur && guard < 64){
+      chain.push(`#${cur.id} @${cur.nick || "anon"}`);
+      if(!cur.from_id) break;
+      cur = map.get(cur.from_id);
+      guard++;
+    }
+
+    // кто не дошёл — значит обрыв
+    if(guard >= 64) chain.push("…");
+    return chain.join(" → ");
+  }
+
+  function countDirectBites(myId){
+    if(!registry || !myId) return 0;
+    return registry.infections.filter(x => x && x.from_id === myId).length;
+  }
+
+  function renderLeaderboard(){
+    if(!registry) return;
+    const counts = new Map();
+    for(const inf of registry.infections){
+      if(!inf || !inf.from_id) continue;
+      counts.set(inf.from_id, (counts.get(inf.from_id)||0) + 1);
+    }
+    const map = new Map(registry.infections.map(x => [x.id, x]));
+    const top = [...counts.entries()]
+      .sort((a,b)=> b[1]-a[1])
+      .slice(0, 10)
+      .map(([id,c], i) => {
+        const who = map.get(id);
+        const name = who ? (`@${who.nick || "anon"}`) : "@unknown";
+        return `${String(i+1).padStart(2,"0")}. #${id} ${name} — ${c} укусов`;
+      })
+      .join("\n") || "Пока пусто. Стань первым распространителем.";
+
+    $("leaderboard").value = top;
+  }
+
+  function renderWall(meId, chainIds){
+    const wall = $("wall");
+    wall.innerHTML = "";
+    if(!registry){ $("wallInfo").textContent = "—"; return; }
+
+    const total = registry.total || registry.infections.length || 0;
+    $("wallInfo").textContent = `показано: последние 60 из ${total}`;
+
+    const start = Math.max(1, total - 59);
+    for(let id = start; id <= total; id++){
+      const div = document.createElement("div");
+      div.className = "cell";
+      div.textContent = "#" + id;
+
+      if(meId && id === meId) div.classList.add("me");
+      if(chainIds && chainIds.has(id)) div.classList.add("chain");
+
+      div.title = "клик → копировать укус-ссылку от этого номера";
+      div.addEventListener("click", ()=>{
+        // из клетки делаем "укус" от выбранного
+        const chosen = registry.infections.find(x => x && x.id === id);
+        if(!chosen) return toast("Нет данных по этому номеру.");
+        const link = makeBiteLink(id, chosen.nick || "anon");
+        copy(link);
+      });
+
+      wall.appendChild(div);
+    }
+  }
+
+  function makeBiteLink(fromId, fromNick){
+    const u = new URL(location.href);
+    u.searchParams.set("from_id", String(fromId));
+    u.searchParams.set("from", sanitizeNick(fromNick || "anon"));
+    return u.toString();
+  }
+
+  function issueLinkForClaim(){
+    const repo = guessRepo();
+    if(!repo) return null;
+
+    const claim = state.claim;
+    const nick = state.nick || "anonymous";
+    const from_id = state.from_id ? String(state.from_id) : "";
+    const from = state.from_nick ? state.from_nick : "";
+    const strain = state.strain || "UNKWN";
+
+    const title = "ZOMBIE_INFECTION";
+    const body =
+`nick: ${nick}
+claim: ${claim}
+strain: ${strain}
+from_id: ${from_id}
+from: ${from}
+created_at: ${new Date().toISOString()}
+note: virtual virus experiment (meme)`;
+
+    const url = new URL(`https://github.com/${repo}/issues/new`);
+    url.searchParams.set("title", title);
+    url.searchParams.set("body", body);
+    return url.toString();
+  }
+
+  function copy(text){
+    navigator.clipboard.writeText(text).then(()=> toast("Скопировано.")).catch(()=> toast("Не смог скопировать."));
+  }
+
+  function renderMyPanel(){
+    $("nick").value = state.nick || "";
+    $("claimCode").textContent = state.claim || "—";
+    $("myStrain").textContent = state.strain || "—";
+    $("myFrom").textContent = state.from_id ? `#${state.from_id}${state.from_nick ? " @"+state.from_nick : ""}` : (state.from_nick ? "@"+state.from_nick : "самозаражение");
+
+    let me = findMeInRegistry();
+    if(me){
+      state.my_id = me.id;
+      state.strain = me.strain || state.strain;
+      saveState();
+    }
+
+    $("myId").textContent = state.my_id ? "#" + state.my_id : "не выдан";
+    const bites = state.my_id ? countDirectBites(state.my_id) : 0;
+    $("myBites").textContent = String(bites);
+
+    if(state.my_id){
+      $("myLine").textContent = `✅ Ты заражён официально. Твой номер: #${state.my_id}. Теперь укуси друзей и зайди в топ.`;
+    } else if(state.claim){
+      $("myLine").textContent = `🧪 Ты участник эксперимента. Нажми “получить номер” и отправь заявку (Issue). Потом обнови реестр — и номер появится.`;
+    } else {
+      $("myLine").textContent = `🧟 Ты заражён. Но без номера ты никто. Жми “получить номер заражения”.`;
+    }
+
+    // lineage + подсветка цепочки
+    const chainIds = new Set();
+    if(registry && state.my_id){
+      const me2 = registry.infections.find(x => x && x.id === state.my_id);
+      if(me2){
+        const map = new Map(registry.infections.map(x => [x.id, x]));
+        let cur = me2, guard = 0;
+        while(cur && guard < 64){
+          chainIds.add(cur.id);
+          if(!cur.from_id) break;
+          cur = map.get(cur.from_id);
+          guard++;
+        }
+        $("lineage").value = buildLineage(me2);
+      } else {
+        $("lineage").value = "—";
+      }
+    } else {
+      $("lineage").value = "—";
+    }
+
+    renderLeaderboard();
+    renderWall(state.my_id, chainIds);
+  }
+
+  function renderGame(){
+    if(!state.mutation) state.mutation = rand(MUTATIONS);
+    if(!state.rank) state.rank = rand(RANKS);
+
+    $("mut1").textContent = state.mutation;
+    $("mut2").textContent = state.rank;
+
+    // шанс легендарки 1% (чтобы реально хотелось крутить)
+    // делаем честно: если rank=легендарный, подсветим
+    $("mut2").className = "";
+    if(state.rank === "легендарный") $("mut2").classList.add("legend");
+    else if(state.rank === "эпический") $("mut2").classList.add("rare");
+  }
+
+  function mutate(){
+    state.mutation = rand(MUTATIONS);
+
+    // честная лотерея: 1% легенда, 4% эпик, остальное
+    const roll = Math.random();
+    if(roll < 0.01) state.rank = "легендарный";
+    else if(roll < 0.05) state.rank = "эпический";
+    else if(roll < 0.20) state.rank = "редкий";
+    else state.rank = "обычный";
+
+    saveState();
+    renderGame();
+    toast("Мутация обновлена. Скринь и хвастай.");
+  }
+
+  function copyCardText(){
+    const id = state.my_id ? `#${state.my_id}` : "(без номера)";
+    const from = state.from_id ? `#${state.from_id}` : "SELF";
+    const bite = state.my_id ? makeBiteLink(state.my_id, state.nick || "anon") : "(получи номер сначала)";
+    const txt =
+`🧟 ZOMBIE VIRUS EXPERIMENT
+Я заражён: ${id}
+Штамм: ${state.strain || "—"}
+Укусил меня: ${from}
+Мутация: ${state.mutation || "—"} (${state.rank || "—"})
+
+Проверь себя и зарази дальше:
+${bite}`;
+    copy(txt);
+  }
+
+  function claimNumber(){
+    // создаём claim + strain (один раз)
+    if(!state.claim) state.claim = makeClaim();
+    if(!state.strain) state.strain = makeStrain();
+    state.nick = sanitizeNick($("nick").value) || state.nick || "anonymous";
+    saveState();
+
+    const url = issueLinkForClaim();
+    if(!url){
+      toast("Не могу угадать owner/repo. Ты не на *.github.io/<repo>/.");
+      return;
+    }
+    // открываем страницу создания issue
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast("Открыл заявку (Issue). Нажми Submit — и ты получишь номер.");
+  }
+
+  function createBite(){
+    if(!state.my_id){
+      toast("Сначала получи номер заражения.");
+      return;
+    }
+    const link = makeBiteLink(state.my_id, state.nick || "anon");
+    copy(link);
+  }
+
+  function findById(){
+    if(!registry){ toast("Сначала загрузим реестр."); return; }
+    const n = parseInt($("searchId").value.trim(), 10);
+    if(!Number.isFinite(n)) return toast("Введи номер, например 17.");
+    const inf = registry.infections.find(x => x && x.id === n);
+    if(!inf) return toast("Не найдено.");
+    const msg = `#${inf.id} @${inf.nick||"anon"} | strain=${inf.strain||"—"} | from=${inf.from_id ? "#"+inf.from_id : "SELF"}`;
+    copy(msg);
+    toast("Скопировал инфу в буфер.");
+  }
+
+  function resetLocal(){
+    localStorage.removeItem(LS);
+    location.search = ""; // очистим укус-параметры
+  }
+
+  function renderAll(){
+    renderMyPanel();
+    renderGame();
+  }
+
+  // Wire UI
+  $("nick").addEventListener("input", () => {
+    state.nick = sanitizeNick($("nick").value);
+    saveState();
+  });
+
+  $("btnClaim").addEventListener("click", claimNumber);
+  $("btnBite").addEventListener("click", createBite);
+  $("btnCopyBite").addEventListener("click", () => {
+    if(!state.my_id) return toast("Нет номера — нет укуса.");
+    copy(makeBiteLink(state.my_id, state.nick || "anon"));
+  });
+  $("btnReset").addEventListener("click", resetLocal);
+
+  $("btnMutate").addEventListener("click", mutate);
+  $("btnCopyCard").addEventListener("click", copyCardText);
+
+  $("btnFind").addEventListener("click", findById);
+  $("btnRefresh").addEventListener("click", fetchRegistry);
+
+  // Init
+  loadState();
+  parseIncomingBite();
+
+  // если человек пришёл по укусу — не стираем, просто показываем от кого
+  if(!state.nick) state.nick = "";
+  if(!state.mutation || !state.rank) mutate(); else renderGame();
+
+  $("statusTop").textContent = "загрузка…";
+  fetchRegistry();
+})();
+</script>
+</body>
+</html>
