@@ -3,179 +3,229 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0B1412" />
+  <meta name="theme-color" content="#0B1311" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
   <title>VIRAL LINK — Arcade</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
-  <!-- NO LANDSCAPE -->
+  <!-- Portrait only -->
   <div id="rotateOverlay" aria-hidden="true">
     <div class="rotateCard">
       <div class="rotateIcon">↻</div>
       <div class="rotateTitle">Только вертикально</div>
-      <div class="rotateText">Поверни телефон обратно — игра строго под портрет.</div>
+      <div class="rotateText">Поверни телефон обратно. Горизонталки нет.</div>
     </div>
   </div>
 
   <div class="bg">
-    <div class="blob b1"></div>
-    <div class="blob b2"></div>
-    <div class="blob b3"></div>
+    <div class="bgGlow g1"></div>
+    <div class="bgGlow g2"></div>
+    <div class="bgGlow g3"></div>
     <div class="grain"></div>
+    <div class="scan"></div>
   </div>
 
-  <main class="wrap" role="application">
-    <!-- GAME CANVAS -->
-    <canvas id="game" class="gameCanvas" aria-label="Viral arcade game"></canvas>
+  <main class="app" role="application">
+    <canvas id="cv"></canvas>
 
-    <!-- TOP HUD -->
+    <!-- HUD -->
     <div class="hud">
       <div class="hudLeft">
         <div class="pill">
-          <span class="dot"></span>
-          <span id="hudStatus">OFFLINE</span>
+          <span class="pillDot"></span>
+          <span id="hudMode">MENU</span>
         </div>
-        <div class="mini">
-          <div class="k">ID</div>
-          <div id="hudId" class="mono v">—</div>
+        <div class="hudMini">
+          <div class="k">CASE</div>
+          <div id="hudCase" class="v mono">—</div>
         </div>
       </div>
 
+      <div class="hudCenter">
+        <div class="hudTitle">VIRAL LINK</div>
+        <div id="hudRank" class="hudRank">Rookie</div>
+      </div>
+
       <div class="hudRight">
-        <div class="mini">
+        <div class="hudMini">
           <div class="k">TIME</div>
-          <div id="hudTime" class="mono v">30.0</div>
+          <div id="hudTime" class="v mono">45.0</div>
         </div>
-        <div class="mini">
+        <div class="hudMini">
           <div class="k">SCORE</div>
-          <div id="hudScore" class="mono v">0</div>
+          <div id="hudScore" class="v mono">0</div>
         </div>
       </div>
     </div>
 
-    <!-- LOAD BAR -->
-    <div class="loadBar">
+    <!-- Load -->
+    <div class="load">
       <div class="loadTop">
-        <div class="loadTitle">VIRAL LOAD</div>
+        <div class="loadLabel">VIRAL LOAD</div>
         <div id="loadPct" class="mono">0%</div>
       </div>
       <div class="bar">
         <div id="barFill" class="barFill"></div>
+        <div class="barShine"></div>
       </div>
     </div>
 
-    <!-- MENU / OVERLAYS -->
-    <section id="overlayMenu" class="overlay show">
+    <!-- MENU OVERLAY -->
+    <section id="menu" class="overlay show" aria-label="Menu">
       <div class="card">
-        <div class="brandRow">
+        <div class="rowTop">
           <div class="logo">☣</div>
-          <div>
+          <div class="rowTopText">
             <div class="brand">VIRAL LINK</div>
-            <div class="sub">Arcade infection experiment (virtual)</div>
+            <div class="sub">Mobile arcade · Virtual infection experiment</div>
+          </div>
+          <button id="btnSound" class="chip" type="button">SOUND: ON</button>
+        </div>
+
+        <!-- Intro video (centered, 16:9) -->
+        <div id="introWrap" class="introWrap">
+          <div class="introFrame">
+            <video id="introVideo" class="introVideo" playsinline muted loop preload="metadata"
+              poster="assets/intro-poster.jpg">
+              <source src="assets/intro.mp4" type="video/mp4" />
+            </video>
+            <div class="introOverlay">
+              <div class="introBadge">INTRO</div>
+              <button id="btnIntro" class="introBtn" type="button">PLAY</button>
+              <div class="introHint">Видео 16:9 по центру (как YouTube). Можно заменить файлом.</div>
+            </div>
           </div>
         </div>
 
-        <h1 class="title">Играй. Набери 100%. Зарази ссылкой.</h1>
+        <h1 class="title">Собирай сыворотку. Включай Fever. Ломай рекорды.</h1>
         <p class="desc">
-          Ты управляешь вирус-ядром пальцем. Собирай <b>сыворотку</b>, избегай <b>антидотов</b>.
-          Это игра, не реальный вирус.
+          Управление: <b>двигай пальцем</b> вирус-ядро. Лови <span class="good">VIAL</span>, избегай <span class="bad">ANTIDOTE</span>.
+          Набери <b>100% LOAD</b> — откроется <b>Share</b> (ссылка несёт лидерборд цепочки).
         </p>
 
-        <div class="infoGrid">
-          <div class="info">
-            <div class="k">Заражен от</div>
-            <div id="infoFrom" class="mono v">PATIENT ZERO</div>
+        <div class="grid2">
+          <div class="infoBox">
+            <div class="k">Твой ID</div>
+            <div id="myId" class="v mono">—</div>
           </div>
-          <div class="info">
-            <div class="k">Длина цепочки</div>
-            <div id="infoChain" class="mono v">—</div>
+          <div class="infoBox">
+            <div class="k">Заражен от</div>
+            <div id="fromId" class="v mono">PATIENT ZERO</div>
+          </div>
+          <div class="infoBox">
+            <div class="k">Цепочка</div>
+            <div id="chainLen" class="v mono">—</div>
+          </div>
+          <div class="infoBox">
+            <div class="k">Best</div>
+            <div id="bestScore" class="v mono">0</div>
           </div>
         </div>
 
         <div class="btnRow">
-          <button id="btnJoin" class="btn ghost" type="button">Получить Infection ID</button>
+          <button id="btnJoin" class="btn ghost" type="button">GET INFECTION ID</button>
           <button id="btnPlay" class="btn primary" type="button">PLAY</button>
         </div>
 
         <div class="btnRow">
-          <button id="btnTrace" class="btn" type="button">TRACE CHAIN</button>
-          <button id="btnSound" class="btn" type="button">SOUND: ON</button>
+          <button id="btnLeaders" class="btn" type="button">LEADERBOARD</button>
+          <button id="btnHow" class="btn" type="button">HOW TO PLAY</button>
         </div>
 
-        <div class="tiny">Tip: чтобы “заразить” — надо выиграть (100%).</div>
+        <div class="tiny dim">
+          Без сервера: топ игроков живёт в ссылке. Чем дальше шарят — тем сильнее лидерборд.
+        </div>
       </div>
     </section>
 
-    <section id="overlayWin" class="overlay">
+    <!-- HOW -->
+    <section id="how" class="overlay" aria-label="How">
       <div class="card">
-        <div class="bigTitle">UNLOCKED ☣</div>
-        <div class="desc">Ты набрал 100%. Теперь можешь отправить ссылку другу.</div>
+        <div class="big">HOW TO PLAY</div>
+        <div class="desc">
+          1) Двигай ядро пальцем (оно липнет к пальцу с физикой).<br/>
+          2) Лови <span class="good">зелёные VIAL</span> → +LOAD +SCORE +combo.<br/>
+          3) Уклоняйся от <span class="bad">красных ANTIDOTE</span> → −LOAD, сброс комбо, шок/вибро.<br/>
+          4) При 100% включается <b>FEVER</b>: x2 score, визуальный ад, частиц в 10 раз больше.<br/>
+          5) После победы жми <b>SHARE</b> — ссылка несёт твой best и строит топ цепочки.
+        </div>
+        <div class="btnRow">
+          <button id="btnHowBack" class="btn primary" type="button">OK</button>
+        </div>
+      </div>
+    </section>
 
-        <div class="results">
-          <div class="r">
-            <div class="k">SCORE</div>
-            <div id="winScore" class="mono v">0</div>
+    <!-- LEADERBOARD -->
+    <section id="leaders" class="overlay" aria-label="Leaderboard">
+      <div class="card">
+        <div class="rowTop">
+          <div class="logo">🏆</div>
+          <div class="rowTopText">
+            <div class="brand">CHAIN LEADERBOARD</div>
+            <div class="sub">Топ игроков в этой вирусной цепочке</div>
           </div>
-          <div class="r">
-            <div class="k">CASE</div>
-            <div id="winCase" class="mono v">—</div>
+          <button id="btnLeadersBack" class="chip" type="button">CLOSE</button>
+        </div>
+
+        <div class="tabs">
+          <button id="tabChain" class="tab on" type="button">CHAIN TOP</button>
+          <button id="tabLocal" class="tab" type="button">LOCAL</button>
+        </div>
+
+        <div id="listChain" class="list"></div>
+        <div id="listLocal" class="list hidden"></div>
+
+        <div class="btnRow">
+          <button id="btnCopyBoard" class="btn" type="button">COPY BOARD</button>
+          <button id="btnReset" class="btn danger" type="button">RESET</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="result" class="overlay" aria-label="Result">
+      <div class="card">
+        <div id="resultTitle" class="big">UNLOCKED ☣</div>
+        <div id="resultDesc" class="desc">Ты набрал 100%. Теперь можешь заразить ссылкой.</div>
+
+        <div class="grid2">
+          <div class="infoBox">
+            <div class="k">SCORE</div>
+            <div id="resScore" class="v mono">0</div>
+          </div>
+          <div class="infoBox">
+            <div class="k">RANK</div>
+            <div id="resRank" class="v mono">Rookie</div>
+          </div>
+          <div class="infoBox">
+            <div class="k">BEST</div>
+            <div id="resBest" class="v mono">0</div>
+          </div>
+          <div class="infoBox">
+            <div class="k">LOAD</div>
+            <div id="resLoad" class="v mono">0%</div>
           </div>
         </div>
 
-        <div class="btnRow">
+        <div class="btnRow" id="shareRow">
           <button id="btnShare" class="btn primary" type="button">SHARE</button>
           <button id="btnCopy" class="btn" type="button">COPY LINK</button>
         </div>
 
         <div class="btnRow">
           <button id="btnAgain" class="btn ghost" type="button">PLAY AGAIN</button>
-          <button id="btnBack" class="btn" type="button">MENU</button>
+          <button id="btnMenu" class="btn" type="button">MENU</button>
         </div>
       </div>
     </section>
 
-    <section id="overlayLose" class="overlay">
-      <div class="card">
-        <div class="bigTitle">TRY AGAIN</div>
-        <div class="desc">Время вышло. Дожми до 100%.</div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
 
-        <div class="results">
-          <div class="r">
-            <div class="k">SCORE</div>
-            <div id="loseScore" class="mono v">0</div>
-          </div>
-          <div class="r">
-            <div class="k">LOAD</div>
-            <div id="loseLoad" class="mono v">0%</div>
-          </div>
-        </div>
-
-        <div class="btnRow">
-          <button id="btnRetry" class="btn primary" type="button">RETRY</button>
-          <button id="btnMenu2" class="btn" type="button">MENU</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="overlayTrace" class="overlay">
-      <div class="card">
-        <div class="brandRow">
-          <div class="logo">⛓</div>
-          <div>
-            <div class="brand">TRACE CHAIN</div>
-            <div class="sub">Кто от кого пошёл</div>
-          </div>
-        </div>
-
-        <div class="infoGrid">
-          <div class="info">
-            <div class="k">Твой ID</div>
-            <div id="traceMyId" class="mono v">—</div>
-          </div>
-          <div class="info">
-            <div class="k">Т
+  <script defer src="game.js"></script>
+</body>
+</html>
