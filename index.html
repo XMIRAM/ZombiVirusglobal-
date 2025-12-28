@@ -22,31 +22,40 @@
             <video autoplay muted playsinline loop id="intro-video">
                 <source src="intro.mp4" type="video/mp4">
             </video>
-            <p id="intro-placeholder" class="hidden">Welcome to the Virus Lab. Click to Unleash the Experiment.</p>
-            <button id="enter-button" class="action-button">Enter the Virus</button>
+            <p id="intro-placeholder" class="hidden">Добро пожаловать в Лабораторию Вируса. Кликните, чтобы Запустить Эксперимент.</p>
+            <button id="enter-button" class="action-button">Войти в Вирус</button>
         </div>
     </div>
     <div id="hub" class="hub-container hidden">
         <header class="hub-header">
-            <h1>Virus Hub</h1>
+            <h1>Вирус Хаб</h1>
+            <select id="language-select" aria-label="Выбрать язык">
+                <option value="en">English</option>
+                <option value="ru" selected>Русский</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="ar">عربي</option>
+            </select>
         </header>
         <section class="player-info">
-            <p>Your Infection ID: <span id="infection-id" aria-live="polite"></span></p>
-            <p>Infected by: <span id="infected-by" aria-live="polite"></span></p>
-            <input id="virus-link" type="text" readonly aria-label="Your personal virus link">
+            <p>Ваш Infection ID: <span id="infection-id" aria-live="polite"></span></p>
+            <p>Заражён от: <span id="infected-by" aria-live="polite"></span></p>
+            <input id="virus-link" type="text" readonly aria-label="Ваша персональная вирусная ссылка">
         </section>
         <section class="actions">
-            <button id="copy-button" class="action-button">Copy Link</button>
-            <button id="share-button" class="action-button">Share</button>
+            <button id="copy-button" class="action-button">Копировать Ссылку</button>
+            <button id="share-button" class="action-button">Поделиться</button>
         </section>
         <section id="mini-game" class="mini-game-section"></section>
         <section id="leaderboard" class="leaderboard-section">
-            <h2>Top Infectors</h2>
+            <h2>Топ Заражателей</h2>
             <ul id="leaderboard-list" aria-live="polite"></ul>
         </section>
-        <section id="world-map" class="map-section" aria-label="World Virus Spread Map"></section>
-        <a href="https://t.me/your_channel" target="_blank" rel="noopener noreferrer" class="tg-link">Join Telegram Community</a>
+        <section id="world-map" class="map-section" aria-label="Мировая Карта Распространения Вируса"></section>
+        <a href="https://t.me/your_channel" target="_blank" rel="noopener noreferrer" class="tg-link">Присоединиться к Telegram Сообществу</a>
     </div>
+    <canvas id="share-canvas" class="hidden"></canvas> <!-- Для генерации шаринг-карточек -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
