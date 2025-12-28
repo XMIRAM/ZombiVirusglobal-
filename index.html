@@ -4,108 +4,215 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>ZOMBIЕGLOBAL</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>ZOMBIEGLOBAL</title>
+
   <style>
     :root{
-      --bg:#070A0F; --glass:rgba(10,14,20,.62); --b:rgba(255,255,255,.12);
-      --t:#EAF7F1; --m:rgba(234,247,241,.65);
-      --g:#45FF75; --c:#2FA9FF; --r:#FF3D4D;
-      --rad:18px; --sh:0 24px 90px rgba(0,0,0,.65);
+      --bg:#05070b;
+      --glass:rgba(12,16,22,.64);
+      --glass2:rgba(10,13,18,.78);
+      --b:rgba(255,255,255,.12);
+      --t:#eaf7f1;
+      --m:rgba(234,247,241,.62);
+      --g:#45ff75;
+      --c:#2fa9ff;
+      --r:#ff3d4d;
+      --y:#ffd34a;
+      --rad:18px;
+      --sh:0 26px 110px rgba(0,0,0,.62);
     }
-    *{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    #root{position:fixed;inset:0;overflow:hidden}
-    .safe{padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
-    .bg{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%, rgba(47,169,255,.10), rgba(0,0,0,.92))}
-    .bg video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.18;filter:saturate(1.1) contrast(1.05)}
-    .grain{position:absolute;inset:-20px;pointer-events:none;opacity:.06;mix-blend-mode:overlay;
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    #app{position:fixed;inset:0;overflow:hidden;background:radial-gradient(120% 80% at 50% 0%, rgba(47,169,255,.10), rgba(0,0,0,.92));}
+
+    /* subtle grain */
+    #app:after{
+      content:"";position:absolute;inset:-20px;pointer-events:none;opacity:.06;mix-blend-mode:overlay;
       background-image:radial-gradient(rgba(255,255,255,.06) 1px, rgba(0,0,0,0) 1px);
       background-size:3px 3px;
     }
 
+    .safe{padding:
+      max(14px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+    }
+
     .screen{position:absolute;inset:0;display:none}
     .screen.on{display:block}
-
     .glass{background:var(--glass);border:1px solid var(--b);border-radius:var(--rad);backdrop-filter:blur(14px);box-shadow:var(--sh)}
-    .btn{all:unset;cursor:pointer;user-select:none;text-align:center;
-      padding:14px 16px;border-radius:16px;border:1px solid var(--b);
-      background:rgba(255,255,255,.06);letter-spacing:.12em;text-transform:uppercase;font-weight:900;font-size:12px
-    }
-    .btn.primary{background:rgba(69,255,117,.14);border-color:rgba(69,255,117,.25)}
-    .btn.blue{background:rgba(47,169,255,.12);border-color:rgba(47,169,255,.22)}
-    .btn.red{background:rgba(255,61,77,.12);border-color:rgba(255,61,77,.22)}
-    .muted{color:var(--m);line-height:1.5}
+    .glass2{background:var(--glass2);border:1px solid rgba(255,255,255,.10);border-radius:var(--rad);backdrop-filter:blur(14px);box-shadow:var(--sh)}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .muted{color:var(--m);line-height:1.5}
+    .tiny{color:rgba(234,247,241,.55);font-size:12px;line-height:1.45}
 
-    /* INTRO: centered YouTube-style player */
+    .btn{
+      all:unset;cursor:pointer;user-select:none;text-align:center;
+      padding:14px 16px;border-radius:16px;border:1px solid var(--b);
+      background:rgba(255,255,255,.06);
+      letter-spacing:.12em;text-transform:uppercase;font-weight:950;font-size:12px;
+      transition:transform .08s ease, filter .16s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.g{background:rgba(69,255,117,.14);border-color:rgba(69,255,117,.25)}
+    .btn.c{background:rgba(47,169,255,.12);border-color:rgba(47,169,255,.22)}
+    .btn.r{background:rgba(255,61,77,.12);border-color:rgba(255,61,77,.22)}
+    .btn.y{background:rgba(255,211,74,.12);border-color:rgba(255,211,74,.24)}
+    .row{display:flex;gap:10px;align-items:center}
+    .grid{display:grid;gap:10px}
+
+    /* background loop (optional) */
+    #bgVideo{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      opacity:.16;filter:saturate(1.1) contrast(1.05);
+      pointer-events:none;
+    }
+    .shade{
+      position:absolute;inset:0;pointer-events:none;
+      background:
+        radial-gradient(120% 70% at 50% 0%, rgba(69,255,117,.10), rgba(0,0,0,0)),
+        linear-gradient(to bottom, rgba(0,0,0,.18), rgba(0,0,0,.70));
+    }
+
+    /* INTRO (centered 16:9) */
     .introWrap{height:100%;display:grid;place-items:center}
     .introCard{width:min(980px,94vw);padding:14px}
-    .introTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .introHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
     .brand{letter-spacing:.22em;text-transform:uppercase;font-weight:950;font-size:14px}
     .tag{margin-top:6px;color:var(--m);font-size:12px;letter-spacing:.08em}
-    .player{margin-top:12px;border-radius:16px;overflow:hidden;border:1px solid var(--b);background:#000;aspect-ratio:16/9}
-    .player video{width:100%;height:100%;object-fit:contain}
-    .introActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-    .hint{margin-top:10px;font-size:12px;color:rgba(234,247,241,.55)}
+    .player{
+      margin-top:12px;
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid var(--b);
+      background:#000;
+      aspect-ratio:16/9;
+      position:relative;
+    }
+    #introVideo{width:100%;height:100%;object-fit:contain;background:#000}
+    .playerOverlay{
+      position:absolute;inset:0;display:grid;place-items:center;
+      background:linear-gradient(to bottom, rgba(0,0,0,.20), rgba(0,0,0,.55));
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .18s ease;
+    }
+    .playerOverlay.on{opacity:1}
+    .warn{
+      padding:12px 14px;border-radius:16px;
+      border:1px solid rgba(255,61,77,.26);
+      background:rgba(255,61,77,.10);
+      color:rgba(234,247,241,.90);
+      max-width:700px;
+    }
+    .introActions{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:560px){.introActions{grid-template-columns:1fr}}
 
-    /* TIKTOK-ish MAIN */
+    /* MAIN (TikTok vibe) */
     .main{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:12px}
     .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .topbar .left{display:flex;flex-direction:column;gap:4px}
-    .topbar .title{letter-spacing:.22em;text-transform:uppercase;font-weight:950;font-size:14px}
-    .topbar .sub{color:var(--m);font-size:12px;letter-spacing:.08em}
+    .title{letter-spacing:.22em;text-transform:uppercase;font-weight:950;font-size:14px}
+    .sub{color:var(--m);font-size:12px;letter-spacing:.08em}
 
-    .stage{position:relative;display:grid;grid-template-columns:1fr auto;gap:12px;min-height:0}
-    .feed{position:relative;min-height:0}
+    .stage{position:relative;min-height:0;display:grid;grid-template-columns:1fr auto;gap:12px}
+    @media (max-width:560px){.stage{grid-template-columns:1fr}}
+    .feed{min-height:0}
     .card{padding:14px;display:flex;flex-direction:column;gap:10px}
-    .big{font-size:28px;font-weight:950;letter-spacing:.06em}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:10px 12px;border-radius:999px;border:1px solid var(--b);background:rgba(0,0,0,.28)}
-    .dot{width:8px;height:8px;border-radius:50%}
-    .dot.g{background:rgba(69,255,117,.9)} .dot.c{background:rgba(47,169,255,.9)} .dot.r{background:rgba(255,61,77,.9)}
-
-    .rightbar{display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:flex-end}
-    .act{all:unset;cursor:pointer;width:54px;height:54px;border-radius:18px;border:1px solid var(--b);
-      background:rgba(0,0,0,.30);backdrop-filter:blur(14px);display:grid;place-items:center
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:10px 12px;border-radius:999px;border:1px solid var(--b);
+      background:rgba(0,0,0,.28)
     }
-    .act span{font-size:11px;color:rgba(234,247,241,.75);letter-spacing:.12em;text-transform:uppercase;font-weight:900}
+    .dot{width:8px;height:8px;border-radius:50%}
+    .dot.g{background:rgba(69,255,117,.9)}
+    .dot.c{background:rgba(47,169,255,.9)}
+    .dot.r{background:rgba(255,61,77,.9)}
+    .linkBox{
+      padding:12px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      font-weight:900;
+      letter-spacing:.02em;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+
+    .rightbar{
+      display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:flex-end;
+    }
+    @media (max-width:560px){
+      .rightbar{flex-direction:row;justify-content:space-between}
+    }
+    .act{
+      all:unset;cursor:pointer;user-select:none;
+      width:58px;height:58px;border-radius:18px;border:1px solid var(--b);
+      background:rgba(0,0,0,.30);backdrop-filter:blur(14px);
+      display:grid;place-items:center;
+    }
+    .act strong{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(234,247,241,.78)}
     .nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .nav .btn{padding:16px 12px}
 
-    @media (max-width:560px){
-      .introActions{grid-template-columns:1fr}
-      .stage{grid-template-columns:1fr}
-      .rightbar{flex-direction:row;justify-content:space-between}
+    /* mini modal */
+    .modal{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.58);z-index:50}
+    .modal.on{display:flex}
+    .sheet{width:min(860px,96vw);max-height:80vh;overflow:auto;border-radius:22px 22px 0 0;padding:14px}
+    .sheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .sheetTitle{margin:0;font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:950}
+
+    /* small icon */
+    .iconBtn{
+      all:unset;cursor:pointer;user-select:none;
+      width:44px;height:44px;border-radius:16px;border:1px solid var(--b);
+      background:rgba(255,255,255,.06);display:grid;place-items:center;
     }
   </style>
 </head>
+
 <body>
-<div id="root">
-  <div class="bg">
-    <video id="bgv" playsinline autoplay muted loop></video>
-  </div>
-  <div class="grain"></div>
+<div id="app">
+  <!-- optional BG -->
+  <video id="bgVideo" playsinline autoplay muted loop></video>
+  <div class="shade"></div>
 
   <!-- INTRO -->
   <section id="intro" class="screen on safe">
     <div class="introWrap">
       <div class="introCard glass">
-        <div class="introTop">
+        <div class="introHead">
           <div>
             <div class="brand">ZOMBIEGLOBAL</div>
             <div class="tag">вирус = ссылка • цепочка заражений • сезонный топ</div>
           </div>
-          <button class="btn blue" id="skip">SKIP</button>
+          <button class="btn c" id="skipIntro">SKIP</button>
         </div>
 
         <div class="player">
-          <video id="introV" playsinline preload="auto"></video>
+          <video id="introVideo" playsinline preload="auto" muted></video>
+          <div id="playerOverlay" class="playerOverlay">
+            <div class="warn">
+              <div style="font-weight:950;letter-spacing:.10em;text-transform:uppercase">Intro video not found</div>
+              <div class="tiny" style="margin-top:8px">
+                Проверь путь: <span class="mono">assets/intro.mp4</span><br>
+                На GitHub Pages файл должен быть именно там.
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="introActions">
-          <button class="btn primary" id="startSound">START (SOUND)</button>
-          <button class="btn" id="startMute">START (MUTED)</button>
+          <button class="btn g" id="startSound">START (SOUND)</button>
+          <button class="btn" id="startMuted">START (MUTED)</button>
         </div>
 
-        <div class="hint">iPhone: звук включается только после нажатия кнопки — это правило Safari.</div>
+        <div class="row" style="justify-content:space-between;margin-top:10px;gap:10px;flex-wrap:wrap">
+          <div class="tiny">iPhone: звук включается только после нажатия — так устроен Safari.</div>
+          <label class="btn y" style="padding:12px 14px">
+            LOAD VIDEO
+            <input id="filePick" type="file" accept="video/*" style="display:none">
+          </label>
+        </div>
       </div>
     </div>
   </section>
@@ -114,73 +221,92 @@
   <section id="main" class="screen safe">
     <div class="main">
       <header class="topbar">
-        <div class="left">
+        <div>
           <div class="title">ZOMBIEGLOBAL</div>
-          <div class="sub">сезон <span id="season" class="mono">—</span> • spreads <span id="spreads" class="mono">0</span></div>
+          <div class="sub">season <span id="season" class="mono">—</span> • spreads <span id="spreads" class="mono">0</span></div>
         </div>
-        <button class="btn red" id="reset">RESET</button>
+        <button class="btn r" id="reset">RESET</button>
       </header>
 
       <div class="stage">
         <div class="feed">
           <div class="glass card">
-            <div class="pill"><span class="dot g"></span><span class="mono" id="id">#------</span><span class="muted">твоя метка</span></div>
-            <div class="big mono" id="link">—</div>
-            <div class="muted">Зашёл по ссылке → ты заражён “от #<span class="mono" id="by">------</span>”. Разнеси дальше и стань источником.</div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              <button class="btn primary" id="copy">COPY LINK</button>
-              <button class="btn blue" id="share">SHARE</button>
+            <div class="pill">
+              <span class="dot g"></span>
+              <span class="mono" id="id">#------</span>
+              <span class="muted">твоя метка</span>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="muted">Твоя вирус-ссылка:</div>
+            <div class="linkBox mono" id="link">—</div>
+
+            <div class="muted">
+              Ты заражён от: <span class="mono" id="by">------</span><br>
+              Раздавай ссылку, чтобы люди заходили по твоей ветке.
+            </div>
+
+            <div class="grid" style="grid-template-columns:1fr 1fr">
+              <button class="btn g" id="copy">COPY LINK</button>
+              <button class="btn c" id="share">SHARE</button>
+            </div>
+
+            <div class="grid" style="grid-template-columns:1fr 1fr">
               <button class="btn" id="tgCh">TG CHANNEL</button>
               <button class="btn" id="tgBot">TG BOT</button>
             </div>
 
-            <div class="muted" style="font-size:12px">
-              Дальше сюда добавим: карта мира, топ месяца, турниры, твой “след” в истории.
-              Сейчас — **правильный TikTok-интерфейс** + вирус-ссылка.
+            <div class="tiny">
+              Сейчас — “идеальная оболочка” + вирус-ссылка. Следующим шагом добавим: Top / Map / Play так, чтобы было залипательно.
             </div>
           </div>
         </div>
 
         <aside class="rightbar">
-          <button class="act" id="actTop" title="Top">
-            <span>TOP</span>
-          </button>
-          <button class="act" id="actMap" title="World">
-            <span>MAP</span>
-          </button>
-          <button class="act" id="actPlay" title="Play">
-            <span>PLAY</span>
-          </button>
+          <button class="act" id="openTop"><strong>TOP</strong></button>
+          <button class="act" id="openMap"><strong>MAP</strong></button>
+          <button class="act" id="openPlay"><strong>PLAY</strong></button>
         </aside>
       </div>
 
       <nav class="nav">
-        <button class="btn primary" id="goPlay">PLAY NOW</button>
+        <button class="btn g" id="goPlay">PLAY NOW</button>
         <button class="btn" id="goTop">MONTH TOP</button>
         <button class="btn" id="goMap">WORLD MAP</button>
       </nav>
     </div>
   </section>
+
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="sheet glass2">
+      <div class="sheetHead">
+        <h3 id="modalTitle" class="sheetTitle">TITLE</h3>
+        <button class="iconBtn" id="closeModal" title="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M6 18L18 6" stroke="rgba(234,247,241,.85)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6 6l12 12" stroke="rgba(234,247,241,.85)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div id="modalBody" style="margin-top:10px"></div>
+    </div>
+  </div>
 </div>
 
 <script>
-  // ---- CONFIG ----
+  // ========= CONFIG =========
   const INTRO_SRC = "assets/intro.mp4";
-  const BG_SRC    = "assets/bg.mp4"; // optional (можно не класть файл)
+  const BG_SRC    = "assets/bg.mp4"; // optional
   const TG_CH     = "https://t.me/zombievirus_server";
   const TG_BOT    = "https://t.me/ZombieVirusLabBot";
 
-  // ---- HELPERS ----
+  // ========= HELPERS =========
   const $ = s => document.querySelector(s);
   const LS = { id:"zg_id", by:"zg_by", spreads:"zg_spreads" };
   const pad = n => String(n).padStart(6,"0");
   const base = () => location.href.split("#")[0].split("?")[0];
-  const getQ = k => new URL(location.href).searchParams.get(k);
   const link = id => `${base()}?ref=${id}`;
+  const q = k => new URL(location.href).searchParams.get(k);
 
   function getId(){
     let id = localStorage.getItem(LS.id);
@@ -188,7 +314,7 @@
     return id;
   }
   function initRef(){
-    const ref = getQ("ref");
+    const ref = q("ref");
     if(ref && /^\d{6}$/.test(ref)){
       const me = getId();
       if(ref !== me) localStorage.setItem(LS.by, ref);
@@ -201,7 +327,12 @@
   }
   async function copy(text){
     try{ await navigator.clipboard.writeText(text); return true; }
-    catch(e){ prompt("Copy:", text); return false; }
+    catch(e){ try{ prompt("Copy:", text); }catch(_){} return false; }
+  }
+
+  function show(which){
+    $("#intro").classList.toggle("on", which==="intro");
+    $("#main").classList.toggle("on", which==="main");
   }
 
   function render(){
@@ -213,45 +344,103 @@
     $("#season").textContent = "#" + (new Date().getMonth()+1);
   }
 
-  function show(which){
-    $("#intro").classList.toggle("on", which==="intro");
-    $("#main").classList.toggle("on", which==="main");
+  // ========= MODAL =========
+  const modal = $("#modal");
+  const modalTitle = $("#modalTitle");
+  const modalBody = $("#modalBody");
+  $("#closeModal").onclick = ()=> modal.classList.remove("on");
+  function openModal(title, html){
+    modalTitle.textContent = title;
+    modalBody.innerHTML = html;
+    modal.classList.add("on");
   }
 
-  // ---- INTRO SETUP ----
-  const introV = $("#introV");
-  introV.src = INTRO_SRC;
-  introV.muted = true;
-  introV.loop = true;
-  introV.play().catch(()=>{});
+  // ========= VIDEO SETUP (robust) =========
+  const introV = $("#introVideo");
+  const overlay = $("#playerOverlay");
 
-  const bgv = $("#bgv");
-  bgv.src = BG_SRC;
-  bgv.play().catch(()=>{}); // если файла нет — просто будет пусто, не ломает
+  function setIntroSrc(url){
+    overlay.classList.remove("on");
+    introV.pause();
+    introV.removeAttribute("src");
+    introV.load();
+    introV.src = url;
+    introV.muted = true;
+    introV.playsInline = true;
+    introV.preload = "auto";
+    introV.loop = true;
 
+    const playAttempt = introV.play();
+    if (playAttempt && playAttempt.catch) playAttempt.catch(()=>{ /* ok */ });
+
+    // if file missing -> show overlay
+    let timedOut = false;
+    const t = setTimeout(()=>{
+      timedOut = true;
+      overlay.classList.add("on");
+    }, 1200);
+
+    introV.oncanplay = ()=>{ if(!timedOut) clearTimeout(t); overlay.classList.remove("on"); };
+    introV.onerror = ()=>{ clearTimeout(t); overlay.classList.add("on"); };
+  }
+
+  // optional BG video: if missing, ignore silently
+  const bgV = $("#bgVideo");
+  function setBgSrc(){
+    bgV.src = BG_SRC;
+    bgV.muted = true; bgV.loop = true; bgV.playsInline = true;
+    const p = bgV.play();
+    if(p && p.catch) p.catch(()=>{ /* ignore */ });
+    bgV.onerror = ()=>{ bgV.style.display="none"; };
+  }
+
+  // file picker fallback (for testing)
+  $("#filePick").addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const url = URL.createObjectURL(f);
+    setIntroSrc(url);
+  });
+
+  // ========= FLOW =========
   function enterMain(){
     introV.pause();
     show("main");
     render();
   }
 
-  $("#startSound").onclick = async ()=>{
-    try{ introV.muted = false; await introV.play(); }catch(e){}
+  $("#skipIntro").onclick = ()=> enterMain();
+
+  $("#startMuted").onclick = ()=>{
+    introV.muted = true;
     enterMain();
   };
-  $("#startMute").onclick = ()=>{ introV.muted = true; enterMain(); };
-  $("#skip").onclick = ()=> enterMain();
 
-  // ---- MAIN ACTIONS ----
+  $("#startSound").onclick = async ()=>{
+    // iPhone unlock audio after user gesture
+    try{
+      introV.muted = false;
+      introV.volume = 1;
+      await introV.play();
+    }catch(e){
+      // if still blocked -> go muted, but not crash
+      introV.muted = true;
+    }
+    enterMain();
+  };
+
+  // ========= MAIN ACTIONS =========
   $("#copy").onclick = async ()=>{
     const ok = await copy(link(getId()));
     if(ok){ spreads(1); render(); }
   };
+
   $("#share").onclick = async ()=>{
     const url = link(getId());
     spreads(1); render();
     if(navigator.share){
-      try{ await navigator.share({ title:"ZOMBIEGLOBAL", text:"Beat me. Enter via my link.", url }); }catch(e){}
+      try{ await navigator.share({ title:"ZOMBIEGLOBAL", text:"Beat me. Enter via my link.", url }); }
+      catch(e){ /* user canceled */ }
     }else{
       await copy(url);
     }
@@ -269,17 +458,26 @@
     }
   };
 
-  // placeholders (пока без портянок и без игры — только UI)
-  const soon = (t)=>alert(t + " — подключим на следующем шаге (без мусорного кода).");
-  $("#actTop").onclick = ()=> soon("MONTH TOP");
-  $("#actMap").onclick = ()=> soon("WORLD MAP");
-  $("#actPlay").onclick = ()=> soon("PLAY MODE");
+  const soon = (t)=> openModal(t, `
+    <div class="tiny">
+      Это следующий блок. Сейчас твой приоритет был: <b>интро по центру</b>, <b>видео чтобы работало</b>, <b>TikTok-интерфейс</b>.
+      <br><br>
+      Дальше делаем реально “залипательный” Play + сезонный Top + World Map.
+    </div>
+  `);
+
+  $("#openTop").onclick = ()=> soon("MONTH TOP");
+  $("#openMap").onclick = ()=> soon("WORLD MAP");
+  $("#openPlay").onclick = ()=> soon("PLAY MODE");
   $("#goTop").onclick  = ()=> soon("MONTH TOP");
   $("#goMap").onclick  = ()=> soon("WORLD MAP");
   $("#goPlay").onclick = ()=> soon("PLAY MODE");
 
-  // init
+  // ========= INIT =========
   initRef();
+  render();
+  setBgSrc();
+  setIntroSrc(INTRO_SRC);
 </script>
 </body>
 </html>
