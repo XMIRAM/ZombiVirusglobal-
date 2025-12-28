@@ -1,93 +1,94 @@
 (() => {
   const $ = (s) => document.querySelector(s);
 
-  // ===== UI
   const ui = {
     cv: $("#cv"),
-    hudMode: $("#hudMode"),
-    hudCase: $("#hudCase"),
+
+    hudState: $("#hudState"),
+    hudHp: $("#hudHp"),
+    hudWave: $("#hudWave"),
     hudTime: $("#hudTime"),
     hudScore: $("#hudScore"),
     hudRank: $("#hudRank"),
 
-    loadPct: $("#loadPct"),
-    barFill: $("#barFill"),
+    btnFire: $("#btnFire"),
+    btnBomb: $("#btnBomb"),
+    btnDash: $("#btnDash"),
+    bombCd: $("#bombCd"),
+    dashCd: $("#dashCd"),
+
+    intro: $("#intro"),
+    introVideo: $("#introVideo"),
+    btnStartSound: $("#btnStartSound"),
+    btnSkipIntro: $("#btnSkipIntro"),
 
     menu: $("#menu"),
-    how: $("#how"),
-    leaders: $("#leaders"),
-    result: $("#result"),
-
-    btnPlay: $("#btnPlay"),
+    btnSound: $("#btnSound"),
     btnJoin: $("#btnJoin"),
+    btnPlay: $("#btnPlay"),
     btnHow: $("#btnHow"),
-    btnHowBack: $("#btnHowBack"),
     btnLeaders: $("#btnLeaders"),
+    myId: $("#myId"),
+    myRank: $("#myRank"),
+    best: $("#best"),
+    chain: $("#chain"),
+
+    how: $("#how"),
+    btnHowBack: $("#btnHowBack"),
+
+    leaders: $("#leaders"),
     btnLeadersBack: $("#btnLeadersBack"),
+    tabLocal: $("#tabLocal"),
+    tabChain: $("#tabChain"),
+    listLocal: $("#listLocal"),
+    listChain: $("#listChain"),
+    btnCopyBoard: $("#btnCopyBoard"),
+    btnReset: $("#btnReset"),
+
+    over: $("#over"),
+    overTitle: $("#overTitle"),
+    overScore: $("#overScore"),
+    overBest: $("#overBest"),
+    overRank: $("#overRank"),
+    overKills: $("#overKills"),
+    btnShare: $("#btnShare"),
+    btnCopyLink: $("#btnCopyLink"),
     btnAgain: $("#btnAgain"),
     btnMenu: $("#btnMenu"),
-    btnReset: $("#btnReset"),
-    btnCopyBoard: $("#btnCopyBoard"),
-
-    btnShare: $("#btnShare"),
-    btnCopy: $("#btnCopy"),
-    btnSound: $("#btnSound"),
-
-    tabChain: $("#tabChain"),
-    tabLocal: $("#tabLocal"),
-    listChain: $("#listChain"),
-    listLocal: $("#listLocal"),
-
-    myId: $("#myId"),
-    fromId: $("#fromId"),
-    chainLen: $("#chainLen"),
-    bestScore: $("#bestScore"),
-
-    resScore: $("#resScore"),
-    resRank: $("#resRank"),
-    resBest: $("#resBest"),
-    resLoad: $("#resLoad"),
-    resultTitle: $("#resultTitle"),
-    resultDesc: $("#resultDesc"),
 
     toast: $("#toast"),
 
-    introWrap: $("#introWrap"),
-    introVideo: $("#introVideo"),
-    btnIntro: $("#btnIntro"),
+    bgVideo: $("#bgVideo"),
   };
 
-  // ===== Storage keys
   const LS = {
-    id: "vl_id",
-    best: "vl_best",
-    localRuns: "vl_runs",
-    sound: "vl_sound",
+    id: "vlz_id",
+    best: "vlz_best",
+    runs: "vlz_runs",
+    sound: "vlz_sound",
   };
 
-  // ===== helpers
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const rnd = (a, b) => a + Math.random() * (b - a);
-  const now = () => performance.now();
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const rnd = (a,b)=>a + Math.random()*(b-a);
+  const dist2=(ax,ay,bx,by)=>{const dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;};
 
-  function toast(msg) {
+  function toast(msg){
     ui.toast.textContent = msg;
     ui.toast.classList.add("show");
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => ui.toast.classList.remove("show"), 1300);
+    toast._t = setTimeout(()=>ui.toast.classList.remove("show"), 1200);
   }
+  function vibrate(p){ if (navigator.vibrate) navigator.vibrate(p); }
 
-  function vibrate(p = 10) { if (navigator.vibrate) navigator.vibrate(p); }
-
-  // ===== Audio (tiny synth)
-  let audioCtx = null;
+  // ====== Sound (WebAudio synth). Real “mp3 SFX” не нужны.
   let soundOn = (localStorage.getItem(LS.sound) ?? "1") === "1";
-  function ensureAudio() {
+  let audioCtx = null;
+  function ensureAudio(){
     if (!soundOn) return null;
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     return audioCtx;
   }
-  function sfx(freq, dur, type="sine", gain=0.06) {
+  function sfx(freq=440, dur=0.04, type="sine", gain=0.06){
     if (!soundOn) return;
     const ctx = ensureAudio();
     if (!ctx) return;
@@ -101,105 +102,107 @@
     o.stop(ctx.currentTime + dur);
   }
 
-  // ===== ID
-  function makeId() {
+  // ====== ID + chain board in URL (без сервера)
+  function makeId(){
     const t = Date.now().toString(36).slice(-6);
-    const r = Math.random().toString(36).slice(2, 6);
-    return (t + r).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const r = Math.random().toString(36).slice(2,6);
+    return (t+r).toUpperCase().replace(/[^A-Z0-9]/g,"");
   }
-
-  // ===== URL: chain + board inside link
-  function parseUrl() {
+  function parseUrl(){
     const u = new URL(location.href);
     const c = u.searchParams.get("c") || "";
     const p = u.searchParams.get("p") || "";
-    const chain = c.split(".").map(x => x.replace(/[^A-Z0-9]/gi,"").toUpperCase()).filter(Boolean).slice(0, 200);
+    const chain = c.split(".").map(x=>x.replace(/[^A-Z0-9]/gi,"").toUpperCase()).filter(Boolean).slice(0,180);
 
-    // p format: ID~SCORE.ID~SCORE...
+    // p: ID~SCORE.ID~SCORE...
     const board = [];
     if (p) {
-      p.split(".").slice(0, 60).forEach(tok => {
+      p.split(".").slice(0,40).forEach(tok=>{
         const [idRaw, scRaw] = tok.split("~");
-        const id = (idRaw || "").replace(/[^A-Z0-9]/gi,"").toUpperCase();
-        const sc = Number(scRaw || "0");
-        if (id && Number.isFinite(sc) && sc >= 0) board.push({ id, score: Math.floor(sc) });
+        const id = (idRaw||"").replace(/[^A-Z0-9]/gi,"").toUpperCase();
+        const sc = Number(scRaw||"0");
+        if (id && Number.isFinite(sc) && sc>=0) board.push({id, score: Math.floor(sc)});
       });
     }
     return { chain, board };
   }
-
-  function buildShareLink(extraEntry) {
+  function mergeBoard(a,b){
+    const m = new Map();
+    [...a, ...b].forEach(e=>{
+      const prev = m.get(e.id);
+      if (!prev || e.score > prev.score) m.set(e.id, {id:e.id, score:e.score});
+    });
+    return [...m.values()];
+  }
+  function buildShareLink(myEntry){
     const u = new URL(location.href);
     u.search = "";
     const chain = [...state.chain];
     if (state.id) chain.push(state.id);
 
-    // merge chain board (best per id), keep top 12 for compact link
-    const merged = mergeBoard(state.chainBoard, extraEntry ? [extraEntry] : []);
-    merged.sort((a,b)=>b.score-a.score);
-    const top = merged.slice(0, 12);
+    const merged = mergeBoard(state.chainBoard, myEntry ? [myEntry] : []);
+    merged.sort((x,y)=>y.score-x.score);
+    const top = merged.slice(0,12);
 
     if (chain.length) u.searchParams.set("c", chain.join("."));
-    if (top.length) u.searchParams.set("p", top.map(e => `${e.id}~${e.score}`).join("."));
-    u.searchParams.set("v", "2");
+    if (top.length) u.searchParams.set("p", top.map(e=>`${e.id}~${e.score}`).join("."));
+    u.searchParams.set("v","z1");
     return u.toString();
   }
 
-  function mergeBoard(boardA, boardB) {
-    const map = new Map();
-    [...boardA, ...boardB].forEach(e => {
-      const prev = map.get(e.id);
-      if (!prev || e.score > prev.score) map.set(e.id, { id: e.id, score: e.score });
-    });
-    return [...map.values()];
-  }
-
-  // ===== Ranks
+  // ====== Ranks
   const RANKS = [
-    { name: "Rookie", min: 0 },
-    { name: "Carrier", min: 900 },
-    { name: "Outbreak", min: 1800 },
-    { name: "Plague", min: 2800 },
-    { name: "Apocalypse", min: 4000 },
+    {name:"Rookie", min:0},
+    {name:"Runner", min:800},
+    {name:"Slayer", min:1600},
+    {name:"Warlord", min:2600},
+    {name:"Doom", min:3800},
+    {name:"Myth", min:5200},
   ];
-  function rankFor(score) {
+  function rankFor(score){
     let r = RANKS[0].name;
     for (const it of RANKS) if (score >= it.min) r = it.name;
     return r;
   }
 
-  // ===== State
+  // ====== State
   const parsed = parseUrl();
   const state = {
+    mode: "menu", // intro/menu/play/over
     id: localStorage.getItem(LS.id) || "",
     best: Number(localStorage.getItem(LS.best) || "0"),
+    runs: [],
     chain: parsed.chain,
     chainBoard: parsed.board,
 
-    // local runs list [{score, load, ts}]
-    runs: [],
     // game
-    mode: "menu", // menu | play | result
-    time: 45.0,
+    t: 60.0,
     score: 0,
-    load: 0,        // 0..100
+    kills: 0,
+    wave: 1,
+    hp: 3,
     combo: 0,
     mult: 1,
-    fever: 0,       // seconds remaining
-    playing: false,
 
-    // control
-    targetX: 0,
-    targetY: 0,
-    touchDown: false,
+    // cooldowns
+    bombCd: 0,
+    dashCd: 0,
+
+    // input
+    aimX: 0,
+    aimY: 0,
+    firing: false,
+
+    // camera shake
+    shake: 0,
   };
 
   try {
-    state.runs = JSON.parse(localStorage.getItem(LS.localRuns) || "[]") || [];
+    state.runs = JSON.parse(localStorage.getItem(LS.runs) || "[]") || [];
     if (!Array.isArray(state.runs)) state.runs = [];
   } catch { state.runs = []; }
 
-  // ===== Orientation: portrait only
+  // ====== Portrait only
   function checkOrientation(){
     document.body.classList.toggle("landscape", window.innerWidth > window.innerHeight);
   }
@@ -207,676 +210,24 @@
   window.addEventListener("orientationchange", checkOrientation);
   checkOrientation();
 
-  // ===== Intro handling
-  function setupIntro(){
-    // if intro.mp4 missing -> hide block
-    if (!ui.introVideo) return;
-    ui.introVideo.addEventListener("error", () => {
-      if (ui.introWrap) ui.introWrap.style.display = "none";
-    });
-    ui.btnIntro?.addEventListener("click", () => {
-      try {
-        if (ui.introVideo.paused) { ui.introVideo.muted = false; ui.introVideo.play(); ui.btnIntro.textContent = "PAUSE"; }
-        else { ui.introVideo.pause(); ui.btnIntro.textContent = "PLAY"; }
-      } catch {}
-    });
-  }
-
-  // ===== UI sync
-  function infectorId() {
-    return state.chain.length ? state.chain[state.chain.length - 1] : "PATIENT ZERO";
-  }
-  function caseNum() {
-    // you are chain length + 1 when you have an ID
-    return state.id ? `#${state.chain.length + 1}` : "—";
-  }
-  function updateTopUI() {
-    ui.hudMode.textContent = state.mode.toUpperCase();
-    ui.hudCase.textContent = caseNum();
-    ui.hudTime.textContent = state.time.toFixed(1);
-    ui.hudScore.textContent = String(Math.floor(state.score));
-    ui.loadPct.textContent = `${Math.floor(state.load)}%`;
-    ui.barFill.style.width = `${clamp(state.load, 0, 100)}%`;
-
-    ui.hudRank.textContent = rankFor(state.best);
-
-    ui.myId.textContent = state.id || "—";
-    ui.fromId.textContent = infectorId();
-    ui.chainLen.textContent = String((state.id ? state.chain.length + 1 : state.chain.length) || 0);
-    ui.bestScore.textContent = String(state.best);
-  }
-
-  function showOverlay(el, on) {
-    el.classList.toggle("show", !!on);
-  }
-
-  function join() {
-    if (state.id) return;
-    state.id = makeId();
-    localStorage.setItem(LS.id, state.id);
-    updateTopUI();
-    toast(`Твой ID: ${state.id}`);
-    vibrate([10, 30, 10]);
-    sfx(740, 0.05, "triangle", 0.06);
-  }
-
-  // ===== Leaderboards
-  function renderLeaderboards() {
-    // chain board + local
-    const chainMerged = mergeBoard(state.chainBoard, state.id ? [{ id: state.id, score: state.best }] : []);
-    chainMerged.sort((a,b)=>b.score-a.score);
-
-    ui.listChain.innerHTML = "";
-    if (!chainMerged.length) {
-      ui.listChain.innerHTML = `<div class="item"><div>Пока пусто. Выиграй и шарь ссылку.</div><div class="badge">—</div></div>`;
-    } else {
-      chainMerged.slice(0, 10).forEach((e, i) => {
-        const me = state.id && e.id === state.id;
-        ui.listChain.insertAdjacentHTML("beforeend", `
-          <div class="item">
-            <div>
-              <div class="mono">${me ? "YOU • " : ""}${e.id}</div>
-              <div class="k">${rankFor(e.score)}</div>
-            </div>
-            <div class="badge">#${i+1} • ${e.score}</div>
-          </div>
-        `);
-      });
-    }
-
-    ui.listLocal.innerHTML = "";
-    const localSorted = [...state.runs].sort((a,b)=>b.score-a.score).slice(0, 10);
-    if (!localSorted.length) {
-      ui.listLocal.innerHTML = `<div class="item"><div>Сыграй пару раз — тут появится топ.</div><div class="badge">—</div></div>`;
-    } else {
-      localSorted.forEach((r,i) => {
-        ui.listLocal.insertAdjacentHTML("beforeend", `
-          <div class="item">
-            <div>
-              <div class="mono">${new Date(r.ts).toLocaleDateString()} ${new Date(r.ts).toLocaleTimeString().slice(0,5)}</div>
-              <div class="k">LOAD ${r.load}%</div>
-            </div>
-            <div class="badge">#${i+1} • ${r.score}</div>
-          </div>
-        `);
-      });
-    }
-  }
-
-  // ===== Game engine (Canvas)
+  // ====== Canvas setup
   const cv = ui.cv;
-  const ctx = cv.getContext("2d", { alpha: true });
+  const ctx = cv.getContext("2d", { alpha:true });
 
-  const G = {
-    w: 0, h: 0, dpr: 1,
-    tPrev: now(),
-    shake: 0,
-  };
-
-  function resizeCanvas() {
-    const rect = cv.getBoundingClientRect();
+  const G = { w:0, h:0, dpr:1, last: performance.now() };
+  function resize(){
+    const r = cv.getBoundingClientRect();
     G.dpr = Math.min(2.25, window.devicePixelRatio || 1);
-    cv.width = Math.floor(rect.width * G.dpr);
-    cv.height = Math.floor(rect.height * G.dpr);
-    G.w = cv.width;
-    G.h = cv.height;
-
-    // initial target
-    state.targetX = G.w * 0.5;
-    state.targetY = G.h * 0.78;
+    cv.width = Math.floor(r.width * G.dpr);
+    cv.height = Math.floor(r.height * G.dpr);
+    G.w = cv.width; G.h = cv.height;
+    state.aimX = G.w*0.5; state.aimY = G.h*0.35;
+    player.x = G.w*0.5; player.y = G.h*0.78;
   }
-  resizeCanvas();
-  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("resize", resize);
+  resize();
 
-  // Entities
-  const player = {
-    x: 0, y: 0,
-    vx: 0, vy: 0,
-    r: 18,
-    hp: 3,
-  };
-
-  const drops = [];    // vials / antidotes / mutagens
-  const particles = [];
-
-  function resetRun() {
-    state.time = 45.0;
-    state.score = 0;
-    state.load = 0;
-    state.combo = 0;
-    state.mult = 1;
-    state.fever = 0;
-    player.hp = 3;
-
-    drops.length = 0;
-    particles.length = 0;
-
-    player.x = G.w * 0.5;
-    player.y = G.h * 0.78;
-    player.vx = player.vy = 0;
-
-    G.shake = 0;
-    updateTopUI();
-  }
-
-  function spawnDrop() {
-    // difficulty ramp by time
-    const prog = 1 - (state.time / 45);
-    const speed = rnd(260, 340) + prog * 160;
-    const x = rnd(36, G.w - 36);
-    const y = -30;
-
-    // types: vial 65%, antidote 28%, mutagen 7%
-    const roll = Math.random();
-    let type = "vial";
-    if (roll > 0.65 && roll <= 0.93) type = "antidote";
-    if (roll > 0.93) type = "mutagen";
-
-    const baseR = type === "mutagen" ? 15 : 13;
-    drops.push({
-      type,
-      x, y,
-      vx: rnd(-22, 22) * (G.dpr/1.2),
-      vy: speed,
-      r: baseR * (G.dpr/1.2),
-      spin: rnd(-3, 3),
-      a: 1,
-    });
-  }
-
-  function burst(x,y, n, kind="good") {
-    for (let i=0;i<n;i++){
-      const ang = rnd(0, Math.PI*2);
-      const sp = rnd(120, 520);
-      particles.push({
-        x, y,
-        vx: Math.cos(ang)*sp,
-        vy: Math.sin(ang)*sp,
-        life: rnd(0.25, 0.7),
-        t: 0,
-        kind,
-        r: rnd(1.2, 3.2) * G.dpr,
-      });
-    }
-  }
-
-  function drawBackground(t) {
-    // subtle moving vignette + grid
-    ctx.save();
-    const tt = t * 0.001;
-    const gx = (Math.sin(tt*0.7)*0.5+0.5)*G.w;
-    const gy = (Math.cos(tt*0.6)*0.5+0.5)*G.h;
-
-    const rad = ctx.createRadialGradient(gx, gy, 10, gx, gy, Math.max(G.w,G.h));
-    rad.addColorStop(0, "rgba(125,255,204,0.10)");
-    rad.addColorStop(0.55, "rgba(0,0,0,0)");
-    rad.addColorStop(1, "rgba(0,0,0,0.55)");
-    ctx.fillStyle = rad;
-    ctx.fillRect(0,0,G.w,G.h);
-
-    // micro grid
-    ctx.globalAlpha = 0.10;
-    ctx.strokeStyle = "rgba(125,255,204,0.22)";
-    ctx.lineWidth = 1 * G.dpr;
-    const step = Math.floor(34 * G.dpr);
-    ctx.beginPath();
-    for (let x=0; x<=G.w; x+=step) { ctx.moveTo(x,0); ctx.lineTo(x,G.h); }
-    for (let y=0; y<=G.h; y+=step) { ctx.moveTo(0,y); ctx.lineTo(G.w,y); }
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawPlayer(t) {
-    const tt = t*0.001;
-    const pulse = 1 + Math.sin(tt*8) * (state.fever>0 ? 0.08 : 0.04);
-    const r = player.r * G.dpr * pulse;
-
-    // outer glow
-    ctx.save();
-    ctx.shadowBlur = 24 * G.dpr;
-    ctx.shadowColor = state.fever>0 ? "rgba(255,255,255,0.25)" : "rgba(125,255,204,0.28)";
-    const grad = ctx.createRadialGradient(player.x, player.y, 2, player.x, player.y, r*2.2);
-    grad.addColorStop(0, state.fever>0 ? "rgba(255,255,255,0.85)" : "rgba(125,255,204,0.95)");
-    grad.addColorStop(0.55, state.fever>0 ? "rgba(125,255,204,0.65)" : "rgba(26,242,166,0.62)");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, r*1.25, 0, Math.PI*2);
-    ctx.fill();
-
-    // core
-    ctx.shadowBlur = 10 * G.dpr;
-    ctx.shadowColor = "rgba(125,255,204,0.22)";
-    ctx.fillStyle = state.fever>0 ? "rgba(255,255,255,0.92)" : "rgba(125,255,204,0.92)";
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, r*0.58, 0, Math.PI*2);
-    ctx.fill();
-
-    // orbit ring
-    ctx.globalAlpha = 0.65;
-    ctx.strokeStyle = state.fever>0 ? "rgba(255,255,255,0.35)" : "rgba(125,255,204,0.35)";
-    ctx.lineWidth = 2 * G.dpr;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, r*0.95, tt*2.2, tt*2.2 + Math.PI*1.55);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawDrop(d) {
-    ctx.save();
-    ctx.globalAlpha = d.a;
-
-    if (d.type === "vial") {
-      ctx.shadowBlur = 18 * G.dpr;
-      ctx.shadowColor = "rgba(125,255,204,0.25)";
-      ctx.fillStyle = "rgba(125,255,204,0.90)";
-    } else if (d.type === "antidote") {
-      ctx.shadowBlur = 18 * G.dpr;
-      ctx.shadowColor = "rgba(255,60,110,0.24)";
-      ctx.fillStyle = "rgba(255,60,110,0.90)";
-    } else {
-      ctx.shadowBlur = 18 * G.dpr;
-      ctx.shadowColor = "rgba(170,120,255,0.22)";
-      ctx.fillStyle = "rgba(170,120,255,0.90)";
-    }
-
-    // capsule-ish shape
-    const r = d.r * G.dpr * 0.95;
-    ctx.translate(d.x, d.y);
-    ctx.rotate(d.spin);
-    ctx.beginPath();
-    ctx.roundRect(-r*0.75, -r*1.05, r*1.5, r*2.1, r*0.75);
-    ctx.fill();
-
-    // inner shine
-    ctx.globalAlpha = d.a * 0.35;
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.beginPath();
-    ctx.roundRect(-r*0.38, -r*0.86, r*0.38, r*1.72, r*0.32);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  function drawParticles(dt) {
-    for (let i=particles.length-1;i>=0;i--){
-      const p = particles[i];
-      p.t += dt;
-      const k = 1 - (p.t / p.life);
-      if (k <= 0) { particles.splice(i,1); continue; }
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vx *= (1 - 1.8*dt);
-      p.vy *= (1 - 1.8*dt);
-
-      ctx.save();
-      ctx.globalAlpha = clamp(k,0,1) * 0.9;
-      ctx.shadowBlur = 14 * G.dpr;
-      ctx.shadowColor = p.kind === "bad" ? "rgba(255,60,110,0.25)" : "rgba(125,255,204,0.22)";
-      ctx.fillStyle = p.kind === "bad" ? "rgba(255,60,110,0.9)" : "rgba(125,255,204,0.9)";
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * (0.7 + k*0.9), 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  function collide(a, bX, bY, bR) {
-    const dx = a.x - bX;
-    const dy = a.y - bY;
-    const rr = (a.r*G.dpr) + bR;
-    return dx*dx + dy*dy <= rr*rr;
-  }
-
-  // ===== Gameplay: drop spawn scheduler
-  let spawnAcc = 0;
-
-  function step(dt, t) {
-    // camera shake
-    const shake = G.shake > 0 ? G.shake : 0;
-    G.shake = Math.max(0, G.shake - dt * 7);
-
-    ctx.save();
-    if (shake > 0) {
-      const sx = rnd(-1,1) * shake * 10 * G.dpr;
-      const sy = rnd(-1,1) * shake * 10 * G.dpr;
-      ctx.translate(sx, sy);
-    }
-
-    // clear
-    ctx.clearRect(0,0,G.w,G.h);
-    drawBackground(t);
-
-    if (state.mode === "play") {
-      // time
-      state.time = Math.max(0, state.time - dt);
-      if (state.fever > 0) state.fever = Math.max(0, state.fever - dt);
-
-      // difficulty ramp: more spawns
-      const prog = 1 - (state.time / 45);
-      const spawnRate = 0.28 - prog*0.11; // seconds per drop
-      spawnAcc += dt;
-      while (spawnAcc >= spawnRate) {
-        spawnAcc -= spawnRate;
-        spawnDrop();
-        if (prog > 0.55 && Math.random() < 0.25) spawnDrop();
-      }
-
-      // player follows touch target with spring
-      const stiffness = 18;
-      const damp = 7.5;
-      const dx = state.targetX - player.x;
-      const dy = state.targetY - player.y;
-      player.vx += dx * stiffness * dt;
-      player.vy += dy * stiffness * dt;
-      player.vx *= (1 - damp*dt);
-      player.vy *= (1 - damp*dt);
-      player.x += player.vx * dt * 60;
-      player.y += player.vy * dt * 60;
-      player.x = clamp(player.x, 24*G.dpr, G.w - 24*G.dpr);
-      player.y = clamp(player.y, 90*G.dpr, G.h - 60*G.dpr);
-
-      // drops
-      for (let i=drops.length-1;i>=0;i--){
-        const d = drops[i];
-        d.x += d.vx * dt;
-        d.y += d.vy * dt;
-        d.spin += d.vx * 0.002 * dt;
-
-        // offscreen
-        if (d.y > G.h + 80) {
-          drops.splice(i,1);
-          // missed vial lowers combo slightly
-          if (d.type === "vial") state.combo = Math.max(0, state.combo - 1);
-          continue;
-        }
-
-        // collision
-        if (collide(player, d.x, d.y, d.r*G.dpr)) {
-          drops.splice(i,1);
-
-          if (d.type === "vial") {
-            // score / load
-            state.combo += 1;
-            const comboBonus = clamp(state.combo, 0, 25);
-            const feverMul = state.fever>0 ? 2 : 1;
-            state.mult = 1 + comboBonus * 0.04;
-            const gain = 6 + comboBonus*0.18;
-            state.load = clamp(state.load + gain, 0, 100);
-
-            const addScore = (70 + comboBonus*8) * state.mult * feverMul;
-            state.score += addScore;
-
-            burst(d.x, d.y, state.fever>0 ? 28 : 16, "good");
-            vibrate(6);
-            sfx(680 + comboBonus*6, 0.03, "triangle", 0.05);
-
-            // FEVER trigger
-            if (state.load >= 100 && state.fever <= 0) {
-              state.fever = 7.5;
-              burst(player.x, player.y, 90, "good");
-              toast("FEVER MODE ⚡ x2");
-              vibrate([20, 30, 20]);
-              sfx(940, 0.06, "sine", 0.07);
-            }
-
-          } else if (d.type === "antidote") {
-            state.combo = 0;
-            state.mult = 1;
-            state.load = clamp(state.load - 16, 0, 100);
-            player.hp = Math.max(0, player.hp - 1);
-            burst(d.x, d.y, 26, "bad");
-            G.shake = Math.min(1, G.shake + 0.35);
-            vibrate([12, 35, 12]);
-            sfx(180, 0.06, "sawtooth", 0.06);
-
-            if (player.hp <= 0) {
-              // end run (lose)
-              endRun(false);
-            }
-
-          } else { // mutagen
-            // gives big score and protects load a bit
-            const feverMul = state.fever>0 ? 2 : 1;
-            state.score += 220 * feverMul;
-            state.load = clamp(state.load + 10, 0, 100);
-            burst(d.x, d.y, 34, "good");
-            vibrate(10);
-            sfx(780, 0.05, "square", 0.04);
-          }
-        }
-      }
-
-      // passive load decay if no fever
-      if (state.fever <= 0) {
-        state.load = clamp(state.load - dt * 1.55, 0, 100);
-      } else {
-        // fever glow points
-        state.score += dt * 18; // tiny drip points
-      }
-
-      // draw drops
-      for (const d of drops) drawDrop(d);
-
-      // particles and player
-      drawParticles(dt);
-      drawPlayer(t);
-
-      // win/lose by time
-      if (state.time <= 0) {
-        endRun(state.load >= 100);
-      }
-    } else {
-      // menu idle animation (floating particles)
-      if (Math.random() < 0.08) {
-        particles.push({
-          x: rnd(0, G.w), y: rnd(0, G.h),
-          vx: rnd(-30,30), vy: rnd(-30,30),
-          life: rnd(0.7, 1.4), t: 0, kind: "good", r: rnd(1.0, 2.2)*G.dpr
-        });
-      }
-      drawParticles(dt);
-      // show a decorative idle player
-      player.x = G.w * 0.5 + Math.sin(t*0.0013)*40*G.dpr;
-      player.y = G.h * 0.62 + Math.cos(t*0.0011)*30*G.dpr;
-      drawPlayer(t);
-    }
-
-    ctx.restore();
-
-    updateTopUI();
-  }
-
-  function endRun(win) {
-    state.mode = "result";
-    state.playing = false;
-
-    const sc = Math.floor(state.score);
-    const ld = Math.floor(state.load);
-
-    // store run
-    state.runs.push({ score: sc, load: ld, ts: Date.now() });
-    state.runs = state.runs.slice(-60);
-    localStorage.setItem(LS.localRuns, JSON.stringify(state.runs));
-
-    if (sc > state.best) {
-      state.best = sc;
-      localStorage.setItem(LS.best, String(state.best));
-    }
-
-    // Update chain board in-memory
-    if (state.id) {
-      state.chainBoard = mergeBoard(state.chainBoard, [{ id: state.id, score: state.best }]);
-    }
-
-    // Result UI
-    ui.resScore.textContent = String(sc);
-    ui.resLoad.textContent = `${ld}%`;
-    ui.resBest.textContent = String(state.best);
-    ui.resRank.textContent = rankFor(state.best);
-
-    if (win) {
-      ui.resultTitle.textContent = "UNLOCKED ☣";
-      ui.resultDesc.textContent = "Ты набрал 100%. Теперь можешь заразить ссылкой (и лидербордом).";
-      $("#shareRow").style.display = "flex";
-      sfx(860, 0.07, "triangle", 0.07);
-      vibrate([20, 25, 20]);
-    } else {
-      ui.resultTitle.textContent = "TRY AGAIN";
-      ui.resultDesc.textContent = "Время/HP закончились. Дожми до 100% LOAD и побей рекорд.";
-      $("#shareRow").style.display = "none";
-      sfx(140, 0.08, "sawtooth", 0.06);
-      vibrate(20);
-    }
-
-    showOverlay(ui.result, true);
-    showOverlay(ui.menu, false);
-  }
-
-  function startGame() {
-    join(); // авто-join чтобы игра была “живой” сразу
-    resetRun();
-    state.mode = "play";
-    state.playing = true;
-    showOverlay(ui.menu, false);
-    showOverlay(ui.result, false);
-    showOverlay(ui.how, false);
-    showOverlay(ui.leaders, false);
-    toast("GO!");
-    sfx(520, 0.05, "sine", 0.05);
-    vibrate(10);
-  }
-
-  // ===== Input
-  function setTargetFromEvent(e) {
-    const rect = cv.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * G.dpr;
-    const y = (e.clientY - rect.top) * G.dpr;
-    state.targetX = x;
-    state.targetY = y;
-  }
-
-  cv.addEventListener("pointerdown", (e) => {
-    cv.setPointerCapture(e.pointerId);
-    state.touchDown = true;
-    setTargetFromEvent(e);
-    // first interaction enables audio
-    ensureAudio();
-  });
-
-  cv.addEventListener("pointermove", (e) => {
-    if (!state.touchDown) return;
-    setTargetFromEvent(e);
-  });
-
-  cv.addEventListener("pointerup", () => {
-    state.touchDown = false;
-  });
-
-  // ===== Buttons
-  ui.btnJoin.addEventListener("click", join);
-  ui.btnPlay.addEventListener("click", startGame);
-
-  ui.btnAgain.addEventListener("click", startGame);
-  ui.btnMenu.addEventListener("click", () => {
-    state.mode = "menu";
-    showOverlay(ui.result, false);
-    showOverlay(ui.menu, true);
-    toast("MENU");
-  });
-
-  ui.btnHow.addEventListener("click", () => showOverlay(ui.how, true));
-  ui.btnHowBack.addEventListener("click", () => showOverlay(ui.how, false));
-
-  ui.btnLeaders.addEventListener("click", () => {
-    renderLeaderboards();
-    showOverlay(ui.leaders, true);
-  });
-  ui.btnLeadersBack.addEventListener("click", () => showOverlay(ui.leaders, false));
-
-  ui.tabChain.addEventListener("click", () => {
-    ui.tabChain.classList.add("on"); ui.tabLocal.classList.remove("on");
-    ui.listChain.classList.remove("hidden"); ui.listLocal.classList.add("hidden");
-  });
-  ui.tabLocal.addEventListener("click", () => {
-    ui.tabLocal.classList.add("on"); ui.tabChain.classList.remove("on");
-    ui.listLocal.classList.remove("hidden"); ui.listChain.classList.add("hidden");
-  });
-
-  ui.btnCopyBoard.addEventListener("click", async () => {
-    const merged = mergeBoard(state.chainBoard, state.id ? [{ id: state.id, score: state.best }] : []);
-    merged.sort((a,b)=>b.score-a.score);
-    const txt = merged.slice(0, 10).map((e,i)=>`#${i+1} ${e.id} — ${e.score}`).join("\n");
-    await copyText(txt);
-    toast("BOARD copied");
-  });
-
-  ui.btnReset.addEventListener("click", () => {
-    localStorage.removeItem(LS.best);
-    localStorage.removeItem(LS.localRuns);
-    state.best = 0;
-    state.runs = [];
-    toast("RESET");
-    renderLeaderboards();
-    updateTopUI();
-  });
-
-  ui.btnSound.addEventListener("click", () => {
-    soundOn = !soundOn;
-    localStorage.setItem(LS.sound, soundOn ? "1" : "0");
-    ui.btnSound.textContent = soundOn ? "SOUND: ON" : "SOUND: OFF";
-    toast(soundOn ? "Sound ON" : "Sound OFF");
-  });
-  ui.btnSound.textContent = soundOn ? "SOUND: ON" : "SOUND: OFF";
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      vibrate(10);
-      sfx(760, 0.04, "triangle", 0.05);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-  }
-
-  async function shareOrCopy(link) {
-    const text = `☣ VIRAL LINK — попробуй побить мой рекорд\n${link}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "VIRAL LINK", text, url: link });
-        toast("Shared");
-      } else {
-        await copyText(link);
-        toast("Link copied");
-      }
-    } catch {
-      await copyText(link);
-      toast("Link copied");
-    }
-  }
-
-  ui.btnShare.addEventListener("click", () => {
-    const link = buildShareLink({ id: state.id, score: state.best });
-    shareOrCopy(link);
-  });
-  ui.btnCopy.addEventListener("click", async () => {
-    const link = buildShareLink({ id: state.id, score: state.best });
-    await copyText(link);
-    toast("Link copied");
-  });
-
-  // ===== Portrait-only + PWA
-  function initPWA() {
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  }
-
-  // ===== RoundRect polyfill (Safari old)
+  // roundRect polyfill
   if (!CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r){
       r = Math.min(r, w/2, h/2);
@@ -891,41 +242,799 @@
     };
   }
 
-  // ===== main loop
-  function loop(t) {
-    const dt = clamp((t - G.tPrev) / 1000, 0, 0.033);
-    G.tPrev = t;
-    step(dt, t);
-    requestAnimationFrame(loop);
+  // ====== Entities
+  const player = {
+    x: G.w*0.5, y: G.h*0.78,
+    r: 18,
+    vx: 0, vy: 0,
+    invuln: 0,
+  };
+
+  const bullets = [];
+  const zombies = [];
+  const particles = [];
+  const pickups = [];
+
+  function burst(x,y, n, color="g"){
+    for (let i=0;i<n;i++){
+      const a = rnd(0, Math.PI*2);
+      const sp = rnd(120, 680) * G.dpr;
+      particles.push({
+        x,y,
+        vx: Math.cos(a)*sp,
+        vy: Math.sin(a)*sp,
+        life: rnd(0.18, 0.65),
+        t: 0,
+        color,
+        r: rnd(1.2, 3.2)*G.dpr
+      });
+    }
   }
 
-  // ===== boot UI
-  function boot() {
-    setupIntro();
+  function spawnZombie(){
+    const side = Math.random();
+    const x = rnd(40, G.w-40);
+    const y = -60 * G.dpr;
 
-    if (!state.id) ui.btnJoin.textContent = "GET INFECTION ID";
-    else ui.btnJoin.textContent = "ID READY";
+    // tougher with wave
+    const hp = 1 + Math.floor((state.wave-1)/3);
+    const sp = (85 + state.wave*6) * G.dpr;
 
-    // show case and chain info
-    ui.fromId.textContent = infectorId();
-    ui.chainLen.textContent = String((state.id ? state.chain.length + 1 : state.chain.length) || 0);
+    zombies.push({
+      x, y,
+      r: (16 + rnd(-2,2)) * G.dpr,
+      hp,
+      sp,
+      wob: rnd(0, 10),
+    });
+  }
+
+  function spawnPickup(x,y){
+    // rare: serum heal or rage
+    const roll = Math.random();
+    const type = roll < 0.6 ? "serum" : "rage";
+    pickups.push({ x, y, type, r: 12*G.dpr, t: 0 });
+  }
+
+  // ====== UI helpers
+  function show(el, on){ el.classList.toggle("show", !!on); }
+
+  function join(){
+    if (state.id) return;
+    state.id = makeId();
+    localStorage.setItem(LS.id, state.id);
+    toast(`ID: ${state.id}`);
+    vibrate([10,30,10]);
+    sfx(720, 0.05, "triangle", 0.06);
+    syncMenu();
+  }
+
+  function hearts(hp){
+    return "♥".repeat(Math.max(0,hp)) + "·".repeat(Math.max(0,3-hp));
+  }
+
+  function syncHUD(){
+    ui.hudState.textContent = state.mode.toUpperCase();
+    ui.hudHp.textContent = hearts(state.hp);
+    ui.hudWave.textContent = String(state.wave);
+    ui.hudTime.textContent = state.t.toFixed(1);
+    ui.hudScore.textContent = String(Math.floor(state.score));
+    ui.hudRank.textContent = rankFor(state.best);
+
+    ui.bombCd.textContent = state.bombCd > 0 ? `${state.bombCd.toFixed(1)}s` : "READY";
+    ui.dashCd.textContent = state.dashCd > 0 ? `${state.dashCd.toFixed(1)}s` : "READY";
+  }
+
+  function syncMenu(){
     ui.myId.textContent = state.id || "—";
+    ui.best.textContent = String(state.best);
+    ui.myRank.textContent = rankFor(state.best);
+    ui.chain.textContent = String((state.id ? state.chain.length+1 : state.chain.length) || 0);
+  }
 
-    updateTopUI();
-    initPWA();
+  // ====== Leaderboards
+  function renderBoards(){
+    // local top
+    const local = [...state.runs].sort((a,b)=>b.score-a.score).slice(0,10);
+    ui.listLocal.innerHTML = local.length
+      ? local.map((r,i)=>`
+          <div class="item">
+            <div>
+              <div class="mono">#${i+1} ${new Date(r.ts).toLocaleDateString()} ${new Date(r.ts).toLocaleTimeString().slice(0,5)}</div>
+              <div class="k">WAVE ${r.wave} · KILLS ${r.kills}</div>
+            </div>
+            <div class="badge">${r.score}</div>
+          </div>
+        `).join("")
+      : `<div class="item"><div>Сыграй пару раз — тут появится топ.</div><div class="badge">—</div></div>`;
 
-    // if intro exists, try autoplay muted
-    try { ui.introVideo?.play(); } catch {}
-    showOverlay(ui.menu, true);
+    // chain top (from URL)
+    const chainMerged = mergeBoard(state.chainBoard, state.id ? [{id:state.id, score: state.best}] : []);
+    chainMerged.sort((a,b)=>b.score-a.score);
+    ui.listChain.innerHTML = chainMerged.length
+      ? chainMerged.slice(0,10).map((e,i)=>`
+          <div class="item">
+            <div>
+              <div class="mono">${e.id === state.id ? "YOU • " : ""}${e.id}</div>
+              <div class="k">${rankFor(e.score)}</div>
+            </div>
+            <div class="badge">#${i+1} · ${e.score}</div>
+          </div>
+        `).join("")
+      : `<div class="item"><div>Пока пусто. Выиграй и шарь ссылку.</div><div class="badge">—</div></div>`;
+  }
+
+  async function copyText(text){
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove();
+    }
+    vibrate(10);
+    sfx(760,0.04,"triangle",0.06);
+  }
+
+  async function shareOrCopy(url){
+    const text = `☣ VIRAL LINK — побей мой рекорд: ${state.best}\n${url}`;
+    try{
+      if (navigator.share) await navigator.share({ title:"VIRAL LINK", text, url });
+      else await copyText(url);
+      toast("DONE");
+    } catch {
+      await copyText(url);
+      toast("LINK COPIED");
+    }
+  }
+
+  // ====== Game lifecycle
+  function resetRun(){
+    state.mode = "play";
+    state.t = 60.0;
+    state.score = 0;
+    state.kills = 0;
+    state.wave = 1;
+    state.hp = 3;
+    state.combo = 0;
+    state.mult = 1;
+
+    state.bombCd = 0;
+    state.dashCd = 0;
+    state.shake = 0;
+
+    bullets.length = 0;
+    zombies.length = 0;
+    particles.length = 0;
+    pickups.length = 0;
+
+    player.x = G.w*0.5;
+    player.y = G.h*0.78;
+    player.vx = player.vy = 0;
+    player.invuln = 0;
+
+    spawnTimer = 0;
+    fireTimer = 0;
+
+    toast("GO!");
+    sfx(520,0.05,"sine",0.05);
+    vibrate(10);
+  }
+
+  function endRun(){
+    state.mode = "over";
+
+    const score = Math.floor(state.score);
+    if (score > state.best) {
+      state.best = score;
+      localStorage.setItem(LS.best, String(state.best));
+      toast("NEW BEST!");
+      sfx(920,0.08,"triangle",0.08);
+      vibrate([20,25,20]);
+    }
+
+    // store run local
+    state.runs.push({ score, wave: state.wave, kills: state.kills, ts: Date.now() });
+    state.runs = state.runs.slice(-80);
+    localStorage.setItem(LS.runs, JSON.stringify(state.runs));
+
+    // update chainBoard in memory (for rendering + sharing)
+    if (state.id) {
+      state.chainBoard = mergeBoard(state.chainBoard, [{ id: state.id, score: state.best }]);
+    }
+
+    ui.overScore.textContent = String(score);
+    ui.overBest.textContent = String(state.best);
+    ui.overRank.textContent = rankFor(state.best);
+    ui.overKills.textContent = String(state.kills);
+
+    show(ui.over, true);
+    show(ui.menu, false);
+    show(ui.how, false);
+    show(ui.leaders, false);
+
+    syncMenu();
+  }
+
+  // ====== Gameplay mechanics
+  function fireBullet(){
+    // direction from player to aim
+    const dx = state.aimX - player.x;
+    const dy = state.aimY - player.y;
+    const len = Math.max(1, Math.hypot(dx,dy));
+    const ux = dx/len, uy = dy/len;
+
+    const sp = 720 * G.dpr;
+    bullets.push({
+      x: player.x + ux*22*G.dpr,
+      y: player.y + uy*22*G.dpr,
+      vx: ux*sp,
+      vy: uy*sp,
+      r: 3.2*G.dpr,
+      life: 0.9,
+      t: 0
+    });
+
+    // muzzle particles
+    burst(player.x + ux*24*G.dpr, player.y + uy*24*G.dpr, 8, "c");
+    sfx(560 + rnd(-40,40), 0.02, "square", 0.03);
+  }
+
+  function bomb(){
+    if (state.bombCd > 0) return;
+    state.bombCd = 9.5;
+
+    // kill / damage near player
+    const R = 130 * G.dpr;
+    let killed = 0;
+
+    for (let i=zombies.length-1;i>=0;i--){
+      const z = zombies[i];
+      if (dist2(player.x,player.y,z.x,z.y) <= R*R){
+        zombies.splice(i,1);
+        killed++;
+        state.kills++;
+        state.combo++;
+        state.mult = 1 + clamp(state.combo,0,25)*0.05;
+        state.score += 110 * state.mult;
+        burst(z.x,z.y,24,"g");
+        if (Math.random()<0.08) spawnPickup(z.x,z.y);
+      }
+    }
+
+    state.shake = Math.min(1, state.shake + 0.55);
+    burst(player.x, player.y, 70, "p");
+    vibrate([20,40,20]);
+    sfx(180,0.08,"sawtooth",0.06);
+
+    toast(killed ? `BOMB: +${killed}` : "BOMB");
+  }
+
+  function dash(){
+    if (state.dashCd > 0) return;
+    state.dashCd = 6.5;
+
+    // quick impulse away from aim (so you can dodge)
+    const dx = state.aimX - player.x;
+    const dy = state.aimY - player.y;
+    const len = Math.max(1, Math.hypot(dx,dy));
+    const ux = dx/len, uy = dy/len;
+
+    // dash opposite direction
+    player.vx += -ux * 22;
+    player.vy += -uy * 22;
+    player.invuln = Math.max(player.invuln, 0.65);
+
+    burst(player.x, player.y, 26, "c");
+    vibrate(10);
+    sfx(820,0.03,"triangle",0.05);
+  }
+
+  let spawnTimer = 0;
+  let fireTimer = 0;
+
+  function step(dt, t){
+    // background vibe: auto-play bg video muted
+    if (ui.bgVideo && ui.bgVideo.paused) ui.bgVideo.play().catch(()=>{});
+
+    // decay cooldowns
+    state.bombCd = Math.max(0, state.bombCd - dt);
+    state.dashCd = Math.max(0, state.dashCd - dt);
+    player.invuln = Math.max(0, player.invuln - dt);
+
+    // camera shake
+    const sh = state.shake;
+    state.shake = Math.max(0, state.shake - dt*3.2);
+
+    ctx.save();
+    if (sh > 0) ctx.translate(rnd(-1,1)*sh*10*G.dpr, rnd(-1,1)*sh*10*G.dpr);
+
+    ctx.clearRect(0,0,G.w,G.h);
+
+    // subtle vignette
+    const gx = (Math.sin(t*0.0012)*0.5+0.5)*G.w;
+    const gy = (Math.cos(t*0.0011)*0.5+0.5)*G.h;
+    const grad = ctx.createRadialGradient(gx,gy,10,gx,gy,Math.max(G.w,G.h));
+    grad.addColorStop(0,"rgba(125,255,204,0.10)");
+    grad.addColorStop(0.6,"rgba(0,0,0,0)");
+    grad.addColorStop(1,"rgba(0,0,0,0.55)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,G.w,G.h);
+
+    // MENU idle look
+    if (state.mode !== "play") {
+      // draw player as decorative glow
+      drawPlayer(t, true);
+      drawParticles(dt);
+      ctx.restore();
+      syncHUD();
+      return;
+    }
+
+    // time
+    state.t = Math.max(0, state.t - dt);
+    if (state.t <= 0) { endRun(); ctx.restore(); return; }
+
+    // wave ramp
+    const targetWave = 1 + Math.floor((60 - state.t) / 10);
+    state.wave = Math.max(state.wave, targetWave);
+
+    // spawn
+    spawnTimer += dt;
+    const rate = Math.max(0.10, 0.42 - state.wave*0.03); // faster with wave
+    while (spawnTimer >= rate){
+      spawnTimer -= rate;
+      spawnZombie();
+      if (state.wave >= 5 && Math.random() < 0.25) spawnZombie();
+    }
+
+    // player physics (light spring to center + dash impulse damping)
+    player.vx *= (1 - dt*2.4);
+    player.vy *= (1 - dt*2.4);
+    player.x += player.vx * 60;
+    player.y += player.vy * 60;
+    player.x = clamp(player.x, 42*G.dpr, G.w - 42*G.dpr);
+    player.y = clamp(player.y, 110*G.dpr, G.h - 92*G.dpr);
+
+    // fire
+    if (state.firing) {
+      fireTimer += dt;
+      const fireRate = 0.09; // bullets interval
+      while (fireTimer >= fireRate){
+        fireTimer -= fireRate;
+        fireBullet();
+      }
+    } else {
+      fireTimer = Math.min(fireTimer, 0.04);
+    }
+
+    // update bullets
+    for (let i=bullets.length-1;i>=0;i--){
+      const b = bullets[i];
+      b.t += dt;
+      if (b.t >= b.life) { bullets.splice(i,1); continue; }
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+
+      // trail
+      if (Math.random() < 0.4) particles.push({
+        x:b.x, y:b.y,
+        vx:rnd(-80,80)*G.dpr, vy:rnd(-80,80)*G.dpr,
+        life:rnd(0.12,0.28), t:0, color:"c", r:rnd(1,2.4)*G.dpr
+      });
+
+      // collision with zombies
+      for (let j=zombies.length-1;j>=0;j--){
+        const z = zombies[j];
+        const rr = (z.r + b.r);
+        if (dist2(b.x,b.y,z.x,z.y) <= rr*rr){
+          bullets.splice(i,1);
+          z.hp -= 1;
+          burst(b.x,b.y,10,"c");
+          if (z.hp <= 0) {
+            zombies.splice(j,1);
+            state.kills++;
+            state.combo++;
+            state.mult = 1 + clamp(state.combo,0,30)*0.05;
+            state.score += (90 + state.wave*6) * state.mult;
+            burst(z.x,z.y,28,"g");
+            sfx(660 + rnd(-50,50), 0.03, "triangle", 0.05);
+            vibrate(6);
+            if (Math.random() < 0.06) spawnPickup(z.x,z.y);
+          }
+          break;
+        }
+      }
+    }
+
+    // update zombies
+    for (let i=zombies.length-1;i>=0;i--){
+      const z = zombies[i];
+      const dx = player.x - z.x;
+      const dy = player.y - z.y;
+      const len = Math.max(1, Math.hypot(dx,dy));
+      const ux = dx/len, uy = dy/len;
+      const wob = Math.sin((t*0.001)*3 + z.wob) * 0.22;
+
+      z.x += (ux + wob) * z.sp * dt;
+      z.y += (uy - wob) * z.sp * dt;
+
+      // hit player
+      const rr = (z.r + player.r*G.dpr);
+      if (dist2(z.x,z.y, player.x,player.y) <= rr*rr) {
+        if (player.invuln <= 0) {
+          state.hp -= 1;
+          player.invuln = 0.85;
+          state.combo = 0;
+          state.mult = 1;
+          state.shake = Math.min(1, state.shake + 0.45);
+          burst(player.x, player.y, 36, "r");
+          vibrate([15,40,15]);
+          sfx(140,0.08,"sawtooth",0.06);
+          toast(state.hp > 0 ? "HIT!" : "DOWN!");
+          if (state.hp <= 0) { endRun(); ctx.restore(); return; }
+        }
+      }
+    }
+
+    // pickups
+    for (let i=pickups.length-1;i>=0;i--){
+      const p = pickups[i];
+      p.t += dt;
+      // float up a bit
+      p.y += Math.sin((t*0.001)*4 + p.x*0.01) * 0.18 * G.dpr;
+
+      const rr = (p.r + player.r*G.dpr);
+      if (dist2(p.x,p.y, player.x,player.y) <= rr*rr) {
+        pickups.splice(i,1);
+        if (p.type === "serum") {
+          state.hp = Math.min(3, state.hp+1);
+          toast("SERUM +HP");
+          burst(p.x,p.y,40,"g");
+          sfx(880,0.05,"triangle",0.07);
+          vibrate(10);
+        } else {
+          // rage: score boost
+          toast("RAGE +SCORE");
+          state.score += 240;
+          burst(p.x,p.y,50,"p");
+          sfx(980,0.06,"square",0.05);
+          vibrate([10,20,10]);
+        }
+      }
+      // despawn after some time
+      if (p.t > 6.5) pickups.splice(i,1);
+    }
+
+    // draw entities (zombies then bullets then player)
+    drawZombies(t);
+    drawBullets(t);
+    drawPickups(t);
+    drawPlayer(t, false);
+    drawParticles(dt);
+
+    ctx.restore();
+    syncHUD();
+  }
+
+  function drawPlayer(t, idle){
+    const tt = t*0.001;
+    const pulse = 1 + Math.sin(tt*8) * (idle ? 0.05 : 0.08);
+    const r = player.r * G.dpr * pulse;
+
+    // glow
+    ctx.save();
+    ctx.shadowBlur = 30*G.dpr;
+    ctx.shadowColor = player.invuln>0 ? "rgba(86,214,255,0.35)" : "rgba(125,255,204,0.30)";
+
+    const g = ctx.createRadialGradient(player.x,player.y, 3, player.x,player.y, r*2.3);
+    g.addColorStop(0, player.invuln>0 ? "rgba(86,214,255,0.92)" : "rgba(125,255,204,0.95)");
+    g.addColorStop(0.55, "rgba(26,242,166,0.50)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(player.x,player.y, r*1.35, 0, Math.PI*2); ctx.fill();
+
+    // core
+    ctx.shadowBlur = 12*G.dpr;
+    ctx.shadowColor = "rgba(255,255,255,0.12)";
+    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.beginPath(); ctx.arc(player.x,player.y, r*0.55, 0, Math.PI*2); ctx.fill();
+
+    // aim line
+    if (!idle) {
+      const dx = state.aimX - player.x;
+      const dy = state.aimY - player.y;
+      const len = Math.max(1, Math.hypot(dx,dy));
+      const ux = dx/len, uy = dy/len;
+      ctx.globalAlpha = 0.65;
+      ctx.strokeStyle = "rgba(125,255,204,0.30)";
+      ctx.lineWidth = 2*G.dpr;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(player.x + ux*120*G.dpr, player.y + uy*120*G.dpr);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawZombies(t){
+    const tt = t*0.001;
+    for (const z of zombies) {
+      const wob = Math.sin(tt*6 + z.wob) * 0.12;
+      ctx.save();
+      ctx.translate(z.x, z.y);
+      ctx.rotate(wob);
+
+      // glow outline (red)
+      ctx.shadowBlur = 22*G.dpr;
+      ctx.shadowColor = "rgba(255,59,110,0.26)";
+      ctx.fillStyle = "rgba(255,59,110,0.86)";
+      ctx.beginPath();
+      ctx.arc(0,0, z.r*1.05, 0, Math.PI*2);
+      ctx.fill();
+
+      // inner body
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.beginPath();
+      ctx.arc(0,0, z.r*0.72, 0, Math.PI*2);
+      ctx.fill();
+
+      // eyes
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath(); ctx.arc(-z.r*0.22, -z.r*0.12, z.r*0.10, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc( z.r*0.22, -z.r*0.12, z.r*0.10, 0, Math.PI*2); ctx.fill();
+
+      // hp ring for tough zombies
+      if (z.hp > 1) {
+        ctx.globalAlpha = 0.75;
+        ctx.strokeStyle = "rgba(255,59,110,0.45)";
+        ctx.lineWidth = 2*G.dpr;
+        ctx.beginPath();
+        ctx.arc(0,0, z.r*1.25, 0, Math.PI*2*(z.hp/3));
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  function drawBullets(){
+    for (const b of bullets) {
+      ctx.save();
+      ctx.shadowBlur = 16*G.dpr;
+      ctx.shadowColor = "rgba(86,214,255,0.22)";
+      ctx.fillStyle = "rgba(86,214,255,0.92)";
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawPickups(t){
+    const tt = t*0.001;
+    for (const p of pickups) {
+      ctx.save();
+      const pulse = 1 + Math.sin(tt*8 + p.x*0.01)*0.08;
+      const r = p.r*pulse;
+      ctx.shadowBlur = 18*G.dpr;
+      ctx.shadowColor = p.type==="serum" ? "rgba(125,255,204,0.22)" : "rgba(176,140,255,0.22)";
+      ctx.fillStyle = p.type==="serum" ? "rgba(125,255,204,0.92)" : "rgba(176,140,255,0.92)";
+      ctx.beginPath();
+      ctx.roundRect(p.x-r*0.9, p.y-r*0.6, r*1.8, r*1.2, r*0.6);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.beginPath();
+      ctx.roundRect(p.x-r*0.45, p.y-r*0.48, r*0.35, r*0.96, r*0.22);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  function drawParticles(dt){
+    for (let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.t += dt;
+      const k = 1 - (p.t/p.life);
+      if (k <= 0) { particles.splice(i,1); continue; }
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= (1 - 2.2*dt);
+      p.vy *= (1 - 2.2*dt);
+
+      ctx.save();
+      ctx.globalAlpha = k*0.9;
+
+      let col = "rgba(125,255,204,0.9)";
+      let glow = "rgba(125,255,204,0.22)";
+      if (p.color==="c") { col="rgba(86,214,255,0.92)"; glow="rgba(86,214,255,0.22)"; }
+      if (p.color==="p") { col="rgba(176,140,255,0.92)"; glow="rgba(176,140,255,0.22)"; }
+      if (p.color==="r") { col="rgba(255,59,110,0.92)"; glow="rgba(255,59,110,0.22)"; }
+
+      ctx.shadowBlur = 16*G.dpr;
+      ctx.shadowColor = glow;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y, p.r*(0.8+k*0.9), 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ====== Input: aim by moving finger anywhere on canvas
+  function setAimFromEvent(e){
+    const r = cv.getBoundingClientRect();
+    state.aimX = (e.clientX - r.left) * G.dpr;
+    state.aimY = (e.clientY - r.top) * G.dpr;
+  }
+  cv.addEventListener("pointerdown", (e)=>{
+    cv.setPointerCapture(e.pointerId);
+    ensureAudio(); // first interaction enables audio
+    setAimFromEvent(e);
+  });
+  cv.addEventListener("pointermove", (e)=> setAimFromEvent(e));
+
+  // Fire button hold
+  ui.btnFire.addEventListener("pointerdown", ()=>{
+    ensureAudio();
+    state.firing = true;
+  });
+  ui.btnFire.addEventListener("pointerup", ()=> state.firing = false);
+  ui.btnFire.addEventListener("pointercancel", ()=> state.firing = false);
+  ui.btnFire.addEventListener("pointerleave", ()=> state.firing = false);
+
+  ui.btnBomb.addEventListener("click", ()=> { ensureAudio(); if(state.mode==="play") bomb(); });
+  ui.btnDash.addEventListener("click", ()=> { ensureAudio(); if(state.mode==="play") dash(); });
+
+  // ====== UI buttons
+  ui.btnJoin.addEventListener("click", join);
+
+  ui.btnPlay.addEventListener("click", ()=>{
+    ensureAudio();
+    join();
+    show(ui.menu,false);
+    show(ui.how,false);
+    show(ui.leaders,false);
+    show(ui.over,false);
+    resetRun();
+    state.mode="play";
+    syncHUD();
+  });
+
+  ui.btnMenu.addEventListener("click", ()=>{
+    state.mode="menu";
+    show(ui.over,false);
+    show(ui.menu,true);
+    syncMenu();
+  });
+
+  ui.btnAgain.addEventListener("click", ()=>{
+    ensureAudio();
+    show(ui.over,false);
+    resetRun();
+    state.mode="play";
+  });
+
+  ui.btnHow.addEventListener("click", ()=> show(ui.how,true));
+  ui.btnHowBack.addEventListener("click", ()=> show(ui.how,false));
+
+  ui.btnLeaders.addEventListener("click", ()=>{
+    renderBoards();
+    show(ui.leaders,true);
+  });
+  ui.btnLeadersBack.addEventListener("click", ()=> show(ui.leaders,false));
+
+  ui.tabLocal.addEventListener("click", ()=>{
+    ui.tabLocal.classList.add("on"); ui.tabChain.classList.remove("on");
+    ui.listLocal.classList.remove("hidden"); ui.listChain.classList.add("hidden");
+  });
+  ui.tabChain.addEventListener("click", ()=>{
+    ui.tabChain.classList.add("on"); ui.tabLocal.classList.remove("on");
+    ui.listChain.classList.remove("hidden"); ui.listLocal.classList.add("hidden");
+  });
+
+  ui.btnCopyBoard.addEventListener("click", async ()=>{
+    const local = [...state.runs].sort((a,b)=>b.score-a.score).slice(0,10);
+    const txt = local.map((r,i)=>`#${i+1} ${r.score} (W${r.wave} K${r.kills})`).join("\n");
+    await copyText(txt || "EMPTY");
+    toast("COPIED");
+  });
+
+  ui.btnReset.addEventListener("click", ()=>{
+    state.runs = [];
+    localStorage.removeItem(LS.runs);
+    toast("RESET");
+    renderBoards();
+  });
+
+  ui.btnSound.addEventListener("click", ()=>{
+    soundOn = !soundOn;
+    localStorage.setItem(LS.sound, soundOn ? "1" : "0");
+    ui.btnSound.textContent = soundOn ? "SOUND: ON" : "SOUND: OFF";
+    toast(soundOn ? "SOUND ON" : "SOUND OFF");
+  });
+  ui.btnSound.textContent = soundOn ? "SOUND: ON" : "SOUND: OFF";
+
+  ui.btnShare.addEventListener("click", ()=>{
+    const link = buildShareLink({ id: state.id, score: state.best });
+    shareOrCopy(link);
+  });
+  ui.btnCopyLink.addEventListener("click", async ()=>{
+    const link = buildShareLink({ id: state.id, score: state.best });
+    await copyText(link);
+    toast("LINK COPIED");
+  });
+
+  // ====== INTRO behavior (shows immediately)
+  function startIntroMuted(){
+    // video can autoplay muted
+    try {
+      ui.introVideo.muted = true;
+      ui.introVideo.play().catch(()=>{});
+    } catch {}
+  }
+  function leaveIntroToMenu(){
+    show(ui.intro, false);
+    show(ui.menu, true);
+    state.mode = "menu";
+    syncMenu();
+    syncHUD();
+  }
+
+  ui.btnSkipIntro.addEventListener("click", ()=>{
+    try{ ui.introVideo.pause(); } catch {}
+    leaveIntroToMenu();
+  });
+
+  ui.btnStartSound.addEventListener("click", ()=>{
+    // First user gesture => we can unmute + play with sound
+    ensureAudio();
+    try {
+      ui.introVideo.muted = false;
+      ui.introVideo.play().catch(()=>{});
+    } catch {}
+    sfx(740,0.05,"triangle",0.06);
+    // after a short moment, go menu (or wait end)
+    setTimeout(()=>leaveIntroToMenu(), 850);
+  });
+
+  ui.introVideo.addEventListener("ended", leaveIntroToMenu);
+
+  // ====== Main loop
+  function loop(t){
+    const dt = clamp((t - G.last)/1000, 0, 0.033);
+    G.last = t;
+    step(dt, t);
+    syncHUD();
     requestAnimationFrame(loop);
   }
 
-  // ===== portrait overlay checker already running
-  checkOrientation();
+  // ====== Boot
+  function boot(){
+    // try play bg video muted
+    ui.bgVideo?.play().catch(()=>{});
+    // intro appears immediately
+    show(ui.intro, true);
+    show(ui.menu, false);
+    startIntroMuted();
 
-  // ===== If you came from link, keep chain board
-  // Merge your own best into display (local only; share writes into link)
-  state.chainBoard = mergeBoard(state.chainBoard, state.id ? [{ id: state.id, score: state.best }] : []);
+    // auto join not forced; but you can
+    syncMenu();
+    syncHUD();
+
+    // merge chain board with your best
+    if (state.id) state.chainBoard = mergeBoard(state.chainBoard, [{id:state.id, score: state.best}]);
+
+    requestAnimationFrame(loop);
+  }
+
+  // PWA service worker
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
 
   boot();
 })();
