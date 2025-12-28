@@ -1,15 +1,14 @@
-// Вставь свой firebaseConfig здесь
 const firebaseConfig = {
+  // Вставь свой config здесь из Firebase (apiKey и т.д.)
   apiKey: "AIzaSyBt2VQ1A3hRFn7nsR-T7kJixB9Gw-M2Gbk",
   authDomain: "virusgamegl.firebaseapp.com",
   projectId: "virusgamegl",
   storageBucket: "virusgamegl.firebasestorage.app",
   messagingSenderId: "93098679136",
-  appId: "1:93098679136:web:d8964eabdc4dda5510dc05",
-  measurementId: "G-87WNMZ2HJJ"
+  appId: "1:93098679136:web:d8964eabdc4dda5510dc05"
 };
 
-// Импорты для Firebase
+// Импорты
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs, updateDoc, orderBy, limit, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -31,7 +30,7 @@ async function initUser() {
     const user = auth.currentUser;
 
     const urlParams = new URLSearchParams(window.location.search);
-    const infectedBy = urlParams.get('infected_by') или 'Creator';
+    const infectedBy = urlParams.get('infected_by') || 'Creator';
 
     const userDocRef = doc(collection(db, 'users'), user.uid);
     const docSnap = await getDoc(userDocRef);
@@ -101,10 +100,14 @@ window.onload = () => {
     if (new URLSearchParams(window.location.search).has('infected_by')) {
         startGame();
     }
-    // Заглушка для видео
     const video = document.getElementById('intro-video');
     video.addEventListener('error', () => {
         document.getElementById('intro-placeholder').style.display = 'block';
         video.style.display = 'none';
     });
 };
+
+// Фикс для onclick: Делаем функции глобальными
+window.startGame = startGame;
+window.copyLink = copyLink;
+window.shareLink = shareLink;
