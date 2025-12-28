@@ -1,8 +1,13 @@
-body {
+/* Global Reset and Base Styles */
+* {
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
-    background: #121212;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background: #121212; /* Dark mode base */
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -10,41 +15,69 @@ body {
     justify-content: center;
     height: 100vh;
     overflow: hidden;
+    transition: background 0.3s ease;
 }
 
+.hidden {
+    display: none !important;
+}
+
+/* Container Styles with Glassmorphism */
 .intro-container, .hub-container {
     width: 100%;
     max-width: 400px;
     padding: 20px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 20px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     text-align: center;
-    animation: fadeIn 1s ease-in;
+    animation: fadeIn 1s ease-out;
+    transition: transform 0.3s ease;
 }
 
-video {
+.intro-container:hover, .hub-container:hover {
+    transform: translateY(-5px);
+}
+
+/* Video and Placeholder */
+#intro-video {
     width: 100%;
     border-radius: 10px;
+    object-fit: cover;
 }
 
-button {
-    background: #ff4081;
+#intro-placeholder {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+/* Buttons with Micro-Interactions */
+.action-button {
+    background: linear-gradient(135deg, #ff4081, #ff77a9);
     border: none;
     color: white;
-    padding: 10px 20px;
+    padding: 12px 24px;
     margin: 10px;
     border-radius: 50px;
     cursor: pointer;
-    transition: transform 0.2s;
+    font-size: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(255, 64, 129, 0.5);
 }
 
-button:hover {
+.action-button:hover {
     transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 64, 129, 0.7);
 }
 
-input {
+.action-button:active {
+    transform: scale(0.98);
+}
+
+/* Input Field */
+input[type="text"] {
     width: 80%;
     padding: 10px;
     margin: 10px 0;
@@ -52,9 +85,45 @@ input {
     border: none;
     background: rgba(255, 255, 255, 0.2);
     color: white;
+    font-size: 1rem;
+    text-align: center;
 }
 
+/* Sections */
+.player-info p {
+    font-size: 1.1rem;
+    margin: 10px 0;
+}
+
+.mini-game-section, .leaderboard-section, .map-section {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#leaderboard-list {
+    list-style: none;
+}
+
+/* Animations */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 400px) {
+    .intro-container, .hub-container {
+        padding: 15px;
+    }
+    .action-button {
+        padding: 10px 20px;
+    }
+}
+
+/* Accessibility Enhancements */
+button:focus, input:focus {
+    outline: 2px solid #ff4081;
+    outline-offset: 2px;
 }
