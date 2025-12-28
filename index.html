@@ -1,483 +1,487 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>ZOMBIEGLOBAL</title>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Outbreak Link</title>
   <style>
     :root{
-      --bg:#05070b;
-      --glass:rgba(12,16,22,.64);
-      --glass2:rgba(10,13,18,.78);
-      --b:rgba(255,255,255,.12);
-      --t:#eaf7f1;
-      --m:rgba(234,247,241,.62);
-      --g:#45ff75;
-      --c:#2fa9ff;
-      --r:#ff3d4d;
-      --y:#ffd34a;
-      --rad:18px;
-      --sh:0 26px 110px rgba(0,0,0,.62);
+      --bg:#05070B;
+      --panel:rgba(10,14,18,.72);
+      --border:rgba(255,255,255,.12);
+      --t1:#EAF7F1;
+      --t2:rgba(234,247,241,.68);
+      --g:#45FF75;
+      --c:#2FA9FF;
+      --r:#FF3D4D;
+      --radius:18px;
     }
-
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    #app{position:fixed;inset:0;overflow:hidden;background:radial-gradient(120% 80% at 50% 0%, rgba(47,169,255,.10), rgba(0,0,0,.92));}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    #app{position:fixed;inset:0;overflow:hidden}
 
-    /* subtle grain */
-    #app:after{
-      content:"";position:absolute;inset:-20px;pointer-events:none;opacity:.06;mix-blend-mode:overlay;
-      background-image:radial-gradient(rgba(255,255,255,.06) 1px, rgba(0,0,0,0) 1px);
-      background-size:3px 3px;
+    /* subtle “game feel” overlay */
+    #app::before{
+      content:""; position:absolute; inset:-20px; pointer-events:none;
+      background:
+        repeating-linear-gradient(to bottom, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 6px);
+      opacity:.08; mix-blend-mode:overlay;
     }
 
-    .safe{padding:
-      max(14px, env(safe-area-inset-top))
-      max(14px, env(safe-area-inset-right))
-      max(14px, env(safe-area-inset-bottom))
-      max(14px, env(safe-area-inset-left));
-    }
+    /* ---------- SCREENS ---------- */
+    .screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+    .screen.active{display:flex}
 
-    .screen{position:absolute;inset:0;display:none}
-    .screen.on{display:block}
-    .glass{background:var(--glass);border:1px solid var(--b);border-radius:var(--rad);backdrop-filter:blur(14px);box-shadow:var(--sh)}
-    .glass2{background:var(--glass2);border:1px solid rgba(255,255,255,.10);border-radius:var(--rad);backdrop-filter:blur(14px);box-shadow:var(--sh)}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    .muted{color:var(--m);line-height:1.5}
-    .tiny{color:rgba(234,247,241,.55);font-size:12px;line-height:1.45}
+    /* ---------- COMMON UI ---------- */
+    .panel{
+      width:min(520px,92vw);
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:18px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 22px 90px rgba(0,0,0,.55);
+    }
+    h1,h2{margin:0}
+    .muted{color:var(--t2);line-height:1.55;margin:10px 0 16px}
+    .col{display:flex;flex-direction:column;gap:10px}
 
     .btn{
-      all:unset;cursor:pointer;user-select:none;text-align:center;
-      padding:14px 16px;border-radius:16px;border:1px solid var(--b);
+      all:unset;
+      user-select:none; cursor:pointer;
+      padding:12px 14px; border-radius:14px;
+      border:1px solid var(--border);
       background:rgba(255,255,255,.06);
-      letter-spacing:.12em;text-transform:uppercase;font-weight:950;font-size:12px;
-      transition:transform .08s ease, filter .16s ease;
+      color:var(--t1);
+      letter-spacing:.10em; text-transform:uppercase; font-weight:800;
+      backdrop-filter: blur(10px);
+      text-align:center;
     }
+    .btn.primary{background:rgba(69,255,117,.16)}
+    .btn.secondary{background:rgba(47,169,255,.10)}
     .btn:active{transform:translateY(1px)}
-    .btn.g{background:rgba(69,255,117,.14);border-color:rgba(69,255,117,.25)}
-    .btn.c{background:rgba(47,169,255,.12);border-color:rgba(47,169,255,.22)}
-    .btn.r{background:rgba(255,61,77,.12);border-color:rgba(255,61,77,.22)}
-    .btn.y{background:rgba(255,211,74,.12);border-color:rgba(255,211,74,.24)}
-    .row{display:flex;gap:10px;align-items:center}
-    .grid{display:grid;gap:10px}
+    .hint{margin-top:10px;color:rgba(234,247,241,.5);font-size:12px}
 
-    /* background loop (optional) */
-    #bgVideo{
-      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-      opacity:.16;filter:saturate(1.1) contrast(1.05);
-      pointer-events:none;
-    }
-    .shade{
-      position:absolute;inset:0;pointer-events:none;
-      background:
-        radial-gradient(120% 70% at 50% 0%, rgba(69,255,117,.10), rgba(0,0,0,0)),
-        linear-gradient(to bottom, rgba(0,0,0,.18), rgba(0,0,0,.70));
-    }
+    /* ---------- BOOT ---------- */
+    .bootWrap{width:min(520px,92vw)}
+    .logo{letter-spacing:.14em;text-transform:uppercase;font-weight:900;margin:0 0 10px}
+    .bootText{color:var(--t2);margin:0 0 16px}
+    .bar{height:10px;border-radius:999px;border:1px solid var(--border);overflow:hidden;background:rgba(255,255,255,.05)}
+    .fill{height:100%;width:0%;background:linear-gradient(90deg,var(--g),var(--c))}
+    .tiny{margin-top:10px;color:rgba(234,247,241,.5);font-size:12px}
 
-    /* INTRO (centered 16:9) */
-    .introWrap{height:100%;display:grid;place-items:center}
-    .introCard{width:min(980px,94vw);padding:14px}
-    .introHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-    .brand{letter-spacing:.22em;text-transform:uppercase;font-weight:950;font-size:14px}
-    .tag{margin-top:6px;color:var(--m);font-size:12px;letter-spacing:.08em}
-    .player{
-      margin-top:12px;
-      border-radius:16px;
-      overflow:hidden;
-      border:1px solid var(--b);
+    /* ---------- INTRO ---------- */
+    .introVideo{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit:cover;
       background:#000;
-      aspect-ratio:16/9;
-      position:relative;
+      filter:saturate(1.05) contrast(1.05);
     }
-    #introVideo{width:100%;height:100%;object-fit:contain;background:#000}
-    .playerOverlay{
-      position:absolute;inset:0;display:grid;place-items:center;
-      background:linear-gradient(to bottom, rgba(0,0,0,.20), rgba(0,0,0,.55));
+    .introHUD{
+      position:absolute; inset:0;
+      display:flex; align-items:flex-end; justify-content:space-between;
+      padding:18px;
       pointer-events:none;
-      opacity:0;
-      transition:opacity .18s ease;
+      gap:14px;
     }
-    .playerOverlay.on{opacity:1}
-    .warn{
-      padding:12px 14px;border-radius:16px;
-      border:1px solid rgba(255,61,77,.26);
-      background:rgba(255,61,77,.10);
-      color:rgba(234,247,241,.90);
-      max-width:700px;
+    .introTag{
+      pointer-events:none;
+      max-width:min(560px,92vw);
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px 16px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 22px 90px rgba(0,0,0,.55);
     }
-    .introActions{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:560px){.introActions{grid-template-columns:1fr}}
+    .tagTitle{margin:0 0 6px;letter-spacing:.12em;text-transform:uppercase;font-weight:900}
+    .tagSub{margin:0;color:var(--t2);line-height:1.45}
+    .btnRow{display:flex;gap:10px;pointer-events:auto}
 
-    /* MAIN (TikTok vibe) */
-    .main{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:12px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .title{letter-spacing:.22em;text-transform:uppercase;font-weight:950;font-size:14px}
-    .sub{color:var(--m);font-size:12px;letter-spacing:.08em}
-
-    .stage{position:relative;min-height:0;display:grid;grid-template-columns:1fr auto;gap:12px}
-    @media (max-width:560px){.stage{grid-template-columns:1fr}}
-    .feed{min-height:0}
-    .card{padding:14px;display:flex;flex-direction:column;gap:10px}
-    .pill{
-      display:inline-flex;gap:8px;align-items:center;
-      padding:10px 12px;border-radius:999px;border:1px solid var(--b);
-      background:rgba(0,0,0,.28)
+    /* ---------- LOBBY ---------- */
+    #lobby{align-items:stretch;justify-content:stretch}
+    .lobbyBg{
+      position:absolute; inset:0;
+      /* fallback gradient + optional image */
+      background:
+        radial-gradient(80% 60% at 50% 10%, rgba(69,255,117,.18), rgba(0,0,0,.78)),
+        url("assets/img/lobby_bg.jpg");
+      background-position:center;
+      background-size:cover;
+      background-repeat:no-repeat;
+      filter: saturate(1.05) contrast(1.05);
     }
-    .dot{width:8px;height:8px;border-radius:50%}
-    .dot.g{background:rgba(69,255,117,.9)}
-    .dot.c{background:rgba(47,169,255,.9)}
-    .dot.r{background:rgba(255,61,77,.9)}
-    .linkBox{
-      padding:12px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.12);
+    .lobbyTop{position:absolute; top:16px; left:16px; right:16px; display:flex; justify-content:flex-start; z-index:5}
+    .playerCard{
+      width:min(360px,92vw);
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px 14px 12px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 22px 90px rgba(0,0,0,.55);
+    }
+    .pcTitle{letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:rgba(234,247,241,.78);font-size:12px}
+    .pcId{font-weight:950;font-size:28px;letter-spacing:.08em;margin:4px 0 2px}
+    .pcMeta{color:var(--t2);font-size:13px}
+    .xpBar{height:10px;border-radius:999px;border:1px solid var(--border);overflow:hidden;background:rgba(255,255,255,.05);margin-top:10px}
+    .xpFill{height:100%;background:linear-gradient(90deg,var(--g),var(--c));width:28%}
+
+    .lobbyCenter{
+      position:absolute; inset:0;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:10px; z-index:5;
+      padding:20px;
+    }
+    .btn.big{padding:16px 18px;border-radius:16px;font-size:14px}
+    .centerSub{color:var(--t2);letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+
+    .tabbar{
+      position:absolute; left:12px; right:12px; bottom:12px;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:20px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr;
+      gap:8px;
+      padding:10px;
+      z-index:10;
+      backdrop-filter: blur(10px);
+      box-shadow:0 22px 90px rgba(0,0,0,.55);
+    }
+    .tab{
+      all:unset; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:6px;
+      padding:10px 8px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.04);
-      font-weight:900;
-      letter-spacing:.02em;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      user-select:none;
+      transition:transform .08s ease, background .12s ease, border-color .12s ease;
     }
+    .tab:hover{transform:translateY(-1px)}
+    .tab:active{transform:translateY(0px)}
+    .tab img{width:22px;height:22px;opacity:.95}
+    .tab span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:900;color:rgba(234,247,241,.82)}
+    .tabPlay{background:rgba(69,255,117,.14);border-color:rgba(69,255,117,.25)}
+    .tab.active{background:rgba(47,169,255,.12);border-color:rgba(47,169,255,.25)}
 
-    .rightbar{
-      display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:flex-end;
+    /* ---------- LOBBY DRAWER (tab content) ---------- */
+    .drawer{
+      position:absolute;
+      left:12px; right:12px;
+      bottom:86px;
+      z-index:9;
+      display:none;
     }
-    @media (max-width:560px){
-      .rightbar{flex-direction:row;justify-content:space-between}
+    .drawer.active{display:block}
+    .drawerPanel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:14px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 22px 90px rgba(0,0,0,.55);
     }
-    .act{
-      all:unset;cursor:pointer;user-select:none;
-      width:58px;height:58px;border-radius:18px;border:1px solid var(--b);
-      background:rgba(0,0,0,.30);backdrop-filter:blur(14px);
+    .drawerHead{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .drawerTitle{
+      letter-spacing:.12em;text-transform:uppercase;font-weight:900;
+      margin:0;
+    }
+    .closeX{
+      all:unset; cursor:pointer;
+      width:36px;height:36px;border-radius:12px;
       display:grid;place-items:center;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      font-weight:900;
     }
-    .act strong{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(234,247,241,.78)}
-    .nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    .nav .btn{padding:16px 12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .field{
+      width:100%;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.05);
+      padding:12px 12px;
+      color:rgba(234,247,241,.9);
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .mini{font-size:12px;color:rgba(234,247,241,.58);line-height:1.5;margin:8px 0 0}
 
-    /* mini modal */
-    .modal{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.58);z-index:50}
-    .modal.on{display:flex}
-    .sheet{width:min(860px,96vw);max-height:80vh;overflow:auto;border-radius:22px 22px 0 0;padding:14px}
-    .sheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .sheetTitle{margin:0;font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:950}
-
-    /* small icon */
-    .iconBtn{
-      all:unset;cursor:pointer;user-select:none;
-      width:44px;height:44px;border-radius:16px;border:1px solid var(--b);
-      background:rgba(255,255,255,.06);display:grid;place-items:center;
+    /* mobile safe areas */
+    @supports(padding:max(0px)){
+      .introHUD{padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));}
+      .tabbar{left:max(12px, env(safe-area-inset-left));right:max(12px, env(safe-area-inset-right));bottom:max(12px, env(safe-area-inset-bottom));}
+      .drawer{left:max(12px, env(safe-area-inset-left));right:max(12px, env(safe-area-inset-right));bottom:calc(max(86px, env(safe-area-inset-bottom) + 74px));}
+      .lobbyTop{left:max(16px, env(safe-area-inset-left));right:max(16px, env(safe-area-inset-right));top:max(16px, env(safe-area-inset-top));}
     }
   </style>
 </head>
-
 <body>
-<div id="app">
-  <!-- optional BG -->
-  <video id="bgVideo" playsinline autoplay muted loop></video>
-  <div class="shade"></div>
+  <div id="app">
 
-  <!-- INTRO -->
-  <section id="intro" class="screen on safe">
-    <div class="introWrap">
-      <div class="introCard glass">
-        <div class="introHead">
-          <div>
-            <div class="brand">ZOMBIEGLOBAL</div>
-            <div class="tag">вирус = ссылка • цепочка заражений • сезонный топ</div>
-          </div>
-          <button class="btn c" id="skipIntro">SKIP</button>
+    <!-- BOOT -->
+    <div class="screen active" id="boot">
+      <div class="bootWrap">
+        <h1 class="logo">OUTBREAK LINK</h1>
+        <p class="bootText">Initializing Outbreak Protocol…</p>
+        <div class="bar"><div class="fill" id="bootFill"></div></div>
+        <div class="tiny">v0.1 local build • no backend • no accounts</div>
+      </div>
+    </div>
+
+    <!-- INTRO -->
+    <div class="screen" id="intro">
+      <video class="introVideo" id="introVideo" playsinline muted autoplay></video>
+      <div class="introHUD">
+        <div class="introTag">
+          <div class="tagTitle">This virus infects a link.</div>
+          <p class="tagSub">Get your Infection ID. Spread it. Climb the monthly ranking.</p>
         </div>
-
-        <div class="player">
-          <video id="introVideo" playsinline preload="auto" muted></video>
-          <div id="playerOverlay" class="playerOverlay">
-            <div class="warn">
-              <div style="font-weight:950;letter-spacing:.10em;text-transform:uppercase">Intro video not found</div>
-              <div class="tiny" style="margin-top:8px">
-                Проверь путь: <span class="mono">assets/intro.mp4</span><br>
-                На GitHub Pages файл должен быть именно там.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="introActions">
-          <button class="btn g" id="startSound">START (SOUND)</button>
-          <button class="btn" id="startMuted">START (MUTED)</button>
-        </div>
-
-        <div class="row" style="justify-content:space-between;margin-top:10px;gap:10px;flex-wrap:wrap">
-          <div class="tiny">iPhone: звук включается только после нажатия — так устроен Safari.</div>
-          <label class="btn y" style="padding:12px 14px">
-            LOAD VIDEO
-            <input id="filePick" type="file" accept="video/*" style="display:none">
-          </label>
+        <div class="btnRow">
+          <button class="btn" id="skipBtn">SKIP</button>
+          <button class="btn primary" id="enterBtn">ENTER</button>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- MAIN -->
-  <section id="main" class="screen safe">
-    <div class="main">
-      <header class="topbar">
-        <div>
-          <div class="title">ZOMBIEGLOBAL</div>
-          <div class="sub">season <span id="season" class="mono">—</span> • spreads <span id="spreads" class="mono">0</span></div>
+    <!-- LOGIN -->
+    <div class="screen" id="login">
+      <div class="panel">
+        <h2 style="letter-spacing:.12em;text-transform:uppercase">Continue</h2>
+        <p class="muted">Sign in to save your Infection ID, chain, and season rank.</p>
+        <div class="col">
+          <button class="btn secondary" id="googleBtn">Google (later)</button>
+          <button class="btn secondary" id="tgBtn">Telegram (later)</button>
+          <button class="btn primary" id="guestBtn">Guest</button>
         </div>
-        <button class="btn r" id="reset">RESET</button>
-      </header>
+        <div class="hint">This is a placeholder login. Next step: real auth + backend.</div>
+      </div>
+    </div>
 
-      <div class="stage">
-        <div class="feed">
-          <div class="glass card">
-            <div class="pill">
-              <span class="dot g"></span>
-              <span class="mono" id="id">#------</span>
-              <span class="muted">твоя метка</span>
-            </div>
+    <!-- LOBBY -->
+    <div class="screen" id="lobby">
+      <div class="lobbyBg"></div>
 
-            <div class="muted">Твоя вирус-ссылка:</div>
-            <div class="linkBox mono" id="link">—</div>
-
-            <div class="muted">
-              Ты заражён от: <span class="mono" id="by">------</span><br>
-              Раздавай ссылку, чтобы люди заходили по твоей ветке.
-            </div>
-
-            <div class="grid" style="grid-template-columns:1fr 1fr">
-              <button class="btn g" id="copy">COPY LINK</button>
-              <button class="btn c" id="share">SHARE</button>
-            </div>
-
-            <div class="grid" style="grid-template-columns:1fr 1fr">
-              <button class="btn" id="tgCh">TG CHANNEL</button>
-              <button class="btn" id="tgBot">TG BOT</button>
-            </div>
-
-            <div class="tiny">
-              Сейчас — “идеальная оболочка” + вирус-ссылка. Следующим шагом добавим: Top / Map / Play так, чтобы было залипательно.
-            </div>
+      <div class="lobbyTop">
+        <div class="playerCard">
+          <div class="pcTitle">INFECTED</div>
+          <div class="pcId" id="uiId">#000001</div>
+          <div class="pcMeta">
+            <span id="uiCountry">AT</span> • <span id="uiRank">Season Rank: #—</span>
           </div>
+          <div class="xpBar"><div class="xpFill"></div></div>
         </div>
-
-        <aside class="rightbar">
-          <button class="act" id="openTop"><strong>TOP</strong></button>
-          <button class="act" id="openMap"><strong>MAP</strong></button>
-          <button class="act" id="openPlay"><strong>PLAY</strong></button>
-        </aside>
       </div>
 
-      <nav class="nav">
-        <button class="btn g" id="goPlay">PLAY NOW</button>
-        <button class="btn" id="goTop">MONTH TOP</button>
-        <button class="btn" id="goMap">WORLD MAP</button>
-      </nav>
-    </div>
-  </section>
+      <div class="lobbyCenter">
+        <button class="btn primary big" id="playBtn">PLAY RUN</button>
+        <div class="centerSub">45 seconds. Contain the outbreak.</div>
+      </div>
 
-  <!-- Modal -->
-  <div id="modal" class="modal">
-    <div class="sheet glass2">
-      <div class="sheetHead">
-        <h3 id="modalTitle" class="sheetTitle">TITLE</h3>
-        <button class="iconBtn" id="closeModal" title="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M6 18L18 6" stroke="rgba(234,247,241,.85)" stroke-width="2" stroke-linecap="round"/>
-            <path d="M6 6l12 12" stroke="rgba(234,247,241,.85)" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+      <!-- tab content drawer -->
+      <div class="drawer" id="drawer">
+        <div class="drawerPanel">
+          <div class="drawerHead">
+            <h3 class="drawerTitle" id="drawerTitle">INFECT</h3>
+            <button class="closeX" id="drawerClose">✕</button>
+          </div>
+          <div id="drawerBody"></div>
+        </div>
+      </div>
+
+      <!-- tab bar -->
+      <div class="tabbar">
+        <button class="tab" id="tab_infect" data-tab="infect">
+          <img src="assets/ui/icon_infect.png" alt="">
+          <span>INFECT</span>
+        </button>
+        <button class="tab" id="tab_world" data-tab="world">
+          <img src="assets/ui/icon_world.png" alt="">
+          <span>WORLD</span>
+        </button>
+        <button class="tab tabPlay" id="tab_play" data-tab="play">
+          <img src="assets/ui/icon_play.png" alt="">
+          <span>PLAY</span>
+        </button>
+        <button class="tab" id="tab_lineage" data-tab="lineage">
+          <img src="assets/ui/icon_lineage.png" alt="">
+          <span>LINEAGE</span>
+        </button>
+        <button class="tab" id="tab_top" data-tab="top">
+          <img src="assets/ui/icon_top.png" alt="">
+          <span>TOP</span>
         </button>
       </div>
-      <div id="modalBody" style="margin-top:10px"></div>
     </div>
+
   </div>
-</div>
 
-<script>
-  // ========= CONFIG =========
-  const INTRO_SRC = "assets/intro.mp4";
-  const BG_SRC    = "assets/bg.mp4"; // optional
-  const TG_CH     = "https://t.me/zombievirus_server";
-  const TG_BOT    = "https://t.me/ZombieVirusLabBot";
-
-  // ========= HELPERS =========
-  const $ = s => document.querySelector(s);
-  const LS = { id:"zg_id", by:"zg_by", spreads:"zg_spreads" };
-  const pad = n => String(n).padStart(6,"0");
-  const base = () => location.href.split("#")[0].split("?")[0];
-  const link = id => `${base()}?ref=${id}`;
-  const q = k => new URL(location.href).searchParams.get(k);
-
-  function getId(){
-    let id = localStorage.getItem(LS.id);
-    if(!id){ id = pad((Math.random()*900000+100000)|0); localStorage.setItem(LS.id,id); }
-    return id;
-  }
-  function initRef(){
-    const ref = q("ref");
-    if(ref && /^\d{6}$/.test(ref)){
-      const me = getId();
-      if(ref !== me) localStorage.setItem(LS.by, ref);
+  <script>
+    // ---------- ROUTER ----------
+    const screens = {
+      boot:  document.getElementById('boot'),
+      intro: document.getElementById('intro'),
+      login: document.getElementById('login'),
+      lobby: document.getElementById('lobby'),
+    };
+    function show(name){
+      Object.values(screens).forEach(s=>s.classList.remove('active'));
+      screens[name].classList.add('active');
     }
-  }
-  function spreads(add=0){
-    const v = (parseInt(localStorage.getItem(LS.spreads)||"0",10) + add);
-    localStorage.setItem(LS.spreads, String(v));
-    return v;
-  }
-  async function copy(text){
-    try{ await navigator.clipboard.writeText(text); return true; }
-    catch(e){ try{ prompt("Copy:", text); }catch(_){} return false; }
-  }
 
-  function show(which){
-    $("#intro").classList.toggle("on", which==="intro");
-    $("#main").classList.toggle("on", which==="main");
-  }
+    // ---------- BOOT ----------
+    const fill = document.getElementById('bootFill');
+    let p = 0;
+    const bootTimer = setInterval(()=>{
+      p += 8;
+      fill.style.width = Math.min(p,100) + '%';
+      if(p >= 100){
+        clearInterval(bootTimer);
+        startIntro();
+      }
+    }, 60);
 
-  function render(){
-    const id = getId();
-    $("#id").textContent = "#" + id;
-    $("#by").textContent = localStorage.getItem(LS.by) || "------";
-    $("#link").textContent = link(id);
-    $("#spreads").textContent = spreads(0);
-    $("#season").textContent = "#" + (new Date().getMonth()+1);
-  }
+    // ---------- INTRO ----------
+    const introVideo = document.getElementById('introVideo');
+    const skipBtn = document.getElementById('skipBtn');
+    const enterBtn = document.getElementById('enterBtn');
 
-  // ========= MODAL =========
-  const modal = $("#modal");
-  const modalTitle = $("#modalTitle");
-  const modalBody = $("#modalBody");
-  $("#closeModal").onclick = ()=> modal.classList.remove("on");
-  function openModal(title, html){
-    modalTitle.textContent = title;
-    modalBody.innerHTML = html;
-    modal.classList.add("on");
-  }
-
-  // ========= VIDEO SETUP (robust) =========
-  const introV = $("#introVideo");
-  const overlay = $("#playerOverlay");
-
-  function setIntroSrc(url){
-    overlay.classList.remove("on");
-    introV.pause();
-    introV.removeAttribute("src");
-    introV.load();
-    introV.src = url;
-    introV.muted = true;
-    introV.playsInline = true;
-    introV.preload = "auto";
-    introV.loop = true;
-
-    const playAttempt = introV.play();
-    if (playAttempt && playAttempt.catch) playAttempt.catch(()=>{ /* ok */ });
-
-    // if file missing -> show overlay
-    let timedOut = false;
-    const t = setTimeout(()=>{
-      timedOut = true;
-      overlay.classList.add("on");
-    }, 1200);
-
-    introV.oncanplay = ()=>{ if(!timedOut) clearTimeout(t); overlay.classList.remove("on"); };
-    introV.onerror = ()=>{ clearTimeout(t); overlay.classList.add("on"); };
-  }
-
-  // optional BG video: if missing, ignore silently
-  const bgV = $("#bgVideo");
-  function setBgSrc(){
-    bgV.src = BG_SRC;
-    bgV.muted = true; bgV.loop = true; bgV.playsInline = true;
-    const p = bgV.play();
-    if(p && p.catch) p.catch(()=>{ /* ignore */ });
-    bgV.onerror = ()=>{ bgV.style.display="none"; };
-  }
-
-  // file picker fallback (for testing)
-  $("#filePick").addEventListener("change", (e)=>{
-    const f = e.target.files && e.target.files[0];
-    if(!f) return;
-    const url = URL.createObjectURL(f);
-    setIntroSrc(url);
-  });
-
-  // ========= FLOW =========
-  function enterMain(){
-    introV.pause();
-    show("main");
-    render();
-  }
-
-  $("#skipIntro").onclick = ()=> enterMain();
-
-  $("#startMuted").onclick = ()=>{
-    introV.muted = true;
-    enterMain();
-  };
-
-  $("#startSound").onclick = async ()=>{
-    // iPhone unlock audio after user gesture
-    try{
-      introV.muted = false;
-      introV.volume = 1;
-      await introV.play();
-    }catch(e){
-      // if still blocked -> go muted, but not crash
-      introV.muted = true;
+    function startIntro(){
+      show('intro');
+      introVideo.src = 'assets/video/intro.mp4';
+      introVideo.addEventListener('ended', ()=> goLogin(), {once:true});
+      // если видео нет/пустое — просто остаёмся на интро, кнопки всё равно работают
     }
-    enterMain();
-  };
-
-  // ========= MAIN ACTIONS =========
-  $("#copy").onclick = async ()=>{
-    const ok = await copy(link(getId()));
-    if(ok){ spreads(1); render(); }
-  };
-
-  $("#share").onclick = async ()=>{
-    const url = link(getId());
-    spreads(1); render();
-    if(navigator.share){
-      try{ await navigator.share({ title:"ZOMBIEGLOBAL", text:"Beat me. Enter via my link.", url }); }
-      catch(e){ /* user canceled */ }
-    }else{
-      await copy(url);
+    function goLogin(){
+      try{ introVideo.pause(); }catch(e){}
+      show('login');
     }
-  };
+    skipBtn.onclick = goLogin;
+    enterBtn.onclick = goLogin;
 
-  $("#tgCh").onclick = ()=> open(TG_CH, "_blank");
-  $("#tgBot").onclick = ()=> open(TG_BOT, "_blank");
+    // ---------- LOGIN ----------
+    document.getElementById('googleBtn').onclick = ()=> alert('Google login will be added on later step.');
+    document.getElementById('tgBtn').onclick     = ()=> alert('Telegram login will be added on later step.');
+    document.getElementById('guestBtn').onclick  = ()=> show('lobby');
 
-  $("#reset").onclick = ()=>{
-    if(confirm("Reset local progress?")){
-      localStorage.removeItem(LS.id);
-      localStorage.removeItem(LS.by);
-      localStorage.removeItem(LS.spreads);
-      location.href = base();
+    // ---------- LOBBY TABS ----------
+    const drawer = document.getElementById('drawer');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const drawerBody  = document.getElementById('drawerBody');
+    const drawerClose = document.getElementById('drawerClose');
+    const tabs = Array.from(document.querySelectorAll('.tab'));
+
+    function setActiveTab(tabName){
+      tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab === tabName));
     }
-  };
 
-  const soon = (t)=> openModal(t, `
-    <div class="tiny">
-      Это следующий блок. Сейчас твой приоритет был: <b>интро по центру</b>, <b>видео чтобы работало</b>, <b>TikTok-интерфейс</b>.
-      <br><br>
-      Дальше делаем реально “залипательный” Play + сезонный Top + World Map.
-    </div>
-  `);
+    function openDrawer(title, html){
+      drawerTitle.textContent = title;
+      drawerBody.innerHTML = html;
+      drawer.classList.add('active');
+    }
+    function closeDrawer(){
+      drawer.classList.remove('active');
+      setActiveTab(null);
+    }
+    drawerClose.onclick = closeDrawer;
 
-  $("#openTop").onclick = ()=> soon("MONTH TOP");
-  $("#openMap").onclick = ()=> soon("WORLD MAP");
-  $("#openPlay").onclick = ()=> soon("PLAY MODE");
-  $("#goTop").onclick  = ()=> soon("MONTH TOP");
-  $("#goMap").onclick  = ()=> soon("WORLD MAP");
-  $("#goPlay").onclick = ()=> soon("PLAY MODE");
+    function getBaseUrl(){
+      // работает и на file:// и на http(s)://
+      const clean = window.location.href.split('#')[0].split('?')[0];
+      return clean;
+    }
+    const myId = '000001'; // позже будет с сервера
+    function infectLink(){
+      return `${getBaseUrl()}?ref=${myId}`;
+    }
 
-  // ========= INIT =========
-  initRef();
-  render();
-  setBgSrc();
-  setIntroSrc(INTRO_SRC);
-</script>
+    function tabInfect(){
+      setActiveTab('infect');
+      openDrawer('INFECT', `
+        <div class="mini">Your personal infection link (share it):</div>
+        <div class="field" id="linkField">${infectLink()}</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="copyLinkBtn">COPY LINK</button>
+          <button class="btn secondary" id="openTgBtn">OPEN TELEGRAM</button>
+        </div>
+        <div class="mini">
+          Infection counts will be saved later (backend). For now this is UI prototype.
+        </div>
+      `);
+
+      const copyBtn = document.getElementById('copyLinkBtn');
+      const openTgBtn = document.getElementById('openTgBtn');
+
+      copyBtn.onclick = async ()=>{
+        try{
+          await navigator.clipboard.writeText(infectLink());
+          copyBtn.textContent = 'COPIED';
+          setTimeout(()=>copyBtn.textContent='COPY LINK', 900);
+        }catch(e){
+          alert('Clipboard blocked. Copy manually from the field.');
+        }
+      };
+
+      openTgBtn.onclick = ()=>{
+        // позже подставим реальную ссылку на твой тгк
+        alert('Later: open your TG channel / bot.');
+      };
+    }
+
+    function tabWorld(){
+      setActiveTab('world');
+      openDrawer('WORLD', `
+        <div class="mini">World outbreak map + country timeline (will be real after backend).</div>
+        <div class="field">Timeline: #1 AT → #2 DE → #3 ...</div>
+        <div class="mini">Here we will show: infections/day, speed, first carrier per country.</div>
+      `);
+    }
+
+    function tabLineage(){
+      setActiveTab('lineage');
+      openDrawer('LINEAGE', `
+        <div class="mini">Who infected who. Your chain (prototype).</div>
+        <div class="field">Infected by: #------</div>
+        <div class="field" style="margin-top:10px">Path to CREATOR: #000001 → ...</div>
+      `);
+    }
+
+    function tabTop(){
+      setActiveTab('top');
+      openDrawer('TOP', `
+        <div class="mini">Monthly season leaderboard (prototype).</div>
+        <div class="field">#1  INFECTED #000120  —  184 infections</div>
+        <div class="field" style="margin-top:8px">#2  INFECTED #000381  —  152 infections</div>
+        <div class="field" style="margin-top:8px">#3  INFECTED #000905  —  99 infections</div>
+        <div class="mini">Winners later: prize + video message in TG channel.</div>
+      `);
+    }
+
+    function tabPlay(){
+      // пока просто показываем, что кнопка живая
+      setActiveTab('play');
+      closeDrawer();
+      alert('Next step: RUN (45 seconds) prototype game loop.');
+    }
+
+    // tab clicks
+    document.getElementById('tab_infect').onclick  = tabInfect;
+    document.getElementById('tab_world').onclick   = tabWorld;
+    document.getElementById('tab_lineage').onclick = tabLineage;
+    document.getElementById('tab_top').onclick     = tabTop;
+    document.getElementById('tab_play').onclick    = tabPlay;
+    document.getElementById('playBtn').onclick     = tabPlay;
+  </script>
 </body>
 </html>
